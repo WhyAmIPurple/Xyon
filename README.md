@@ -1,0 +1,2 @@
+# Xyon
+Student-focused app to track assignments, deadlines, exams, tasks, and extracurriculars in one place. We plan compatibility with Montclair State tools (Canvas, Engage, scheduling) to sync schedules and coursework. Built for Montclair students, but useful for professionals or anyone wanting a simple, subscription-free planner.
