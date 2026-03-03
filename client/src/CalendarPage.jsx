@@ -4,62 +4,92 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
-const initialAssignments = [
+const seedEvents = [
   {
     id: "a1",
     title: "CSIT 415 Milestone 1",
-    dueDate: "2026-03-05",
-    course: "CSIT 415",
-    type: "Assignment",
-    color: "#4f46e5"
-  },
-  {
-    id: "a2",
-    title: "Networks Quiz",
-    dueDate: "2026-03-06",
-    course: "CSIT 340",
-    type: "Quiz",
-    color: "#059669"
+    start: "2026-03-05",
+    allDay: true,
+    backgroundColor: "#4f46e5",
+    borderColor: "#4f46e5",
+    extendedProps: { course: "CSIT 415", type: "Assignment" }
   }
 ];
 
 export default function CalendarPage() {
-  const [assignments, setAssignments] = useState(initialAssignments);
+  const [events, setEvents] = useState(seedEvents);
 
-  const events = useMemo(() => {
-    return assignments.map(a => ({
-      id: a.id,
-      title: a.title,
-      start: a.dueDate,
-      allDay: true,
-      backgroundColor: a.color,
-      borderColor: a.color,
-      extendedProps: {
-        course: a.course,
-        type: a.type
-      }
-    }));
-  }, [assignments]);
+  const handleDateClick = (info) => {
+    const title = prompt("Event title?");
+    if (!title || !title.trim()) return;
+
+    const newEvent = {
+      id: String(Date.now()),
+      title: title.trim(),
+      start: info.dateStr, // YYYY-MM-DD
+      allDay: info.allDay ?? true,
+      backgroundColor: "#ef4444",
+      borderColor: "#ef4444"
+    };
+
+    setEvents((prev) => [...prev, newEvent]);
+  };
+
+  const handleEventChange = (changeInfo) => {
+    // Handles drag/drop + resize updates
+    const updated = changeInfo.event;
+
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === updated.id
+          ? {
+              ...e,
+              title: updated.title,
+              start: updated.startStr,
+              end: updated.endStr || null,
+              allDay: updated.allDay
+            }
+          : e
+      )
+    );
+  };
+
+  const handleEventClick = (clickInfo) => {
+    const doDelete = confirm(`Delete "${clickInfo.event.title}"?`);
+    if (!doDelete) return;
+
+    const id = clickInfo.event.id;
+    clickInfo.event.remove(); // removes from UI immediately
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  };
 
   return (
     <div style={{ padding: 24, fontFamily: "Arial, sans-serif" }}>
-      <h1 style={{ marginBottom: 12 }}>Xyon Calendar</h1>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+        <h1 style={{ margin: 0 }}>Xyon Calendar</h1>
+        <span style={{ color: "#555" }}>
+          Click a day to add • Click an event to delete • Drag to move
+        </span>
+      </div>
 
-      <FullCalendar
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        headerToolbar={{
-          left: "prev,next today",
-          center: "title",
-          right: "dayGridMonth,timeGridWeek,timeGridDay"
-        }}
-        height="80vh"
-        events={events}
-        eventClick={(info) => {
-          const { course, type } = info.event.extendedProps;
-          alert(`${info.event.title}\n${course} • ${type}\nDue: ${info.event.startStr}`);
-        }}
-      />
+      <div style={{ marginTop: 16 }}>
+        <FullCalendar
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay"
+          }}
+          height="80vh"
+          editable={true}          // allows drag/drop and resize
+          selectable={true}
+          dateClick={handleDateClick}
+          eventChange={handleEventChange}
+          eventClick={handleEventClick}
+          events={events}
+        />
+      </div>
     </div>
   );
 }
