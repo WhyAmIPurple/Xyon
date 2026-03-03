@@ -1,19 +1,27 @@
 const express = require('express');
 const cors = require('cors');
+require("dotenv").config();
+
+const authorizationRoutes = require("./backend/routes/authorization.js");
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+app.use("/", (req, res) => res.send("Xyon is running"));
+
+app.use("/api/auth", authorizationRoutes);
+
 let events = [];
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK' });
-});
+//app.get('/health', (req, res) => {
+//  res.json({ status: 'OK' });
+//});
 
-app.get('/api/events', (req, res) => {
-  res.json(events);
-});
+//app.get('/api/events', (req, res) => {
+//  res.json(events);
+//});
 
 app.post('/api/events', (req, res) => {
   const event = { id: Date.now(), ...req.body };
