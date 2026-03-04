@@ -19,7 +19,7 @@ router.post("/register", async(req, res) => {
         }
 
         const passwordHash = await bcrypt.hash(password, 12);
-        const [result] = await userDb.query("INSERT INTO users (first_name, last_name, email, password) VALUES (?, ?, ?, ?)", [first_name, last_name, email, passwordHash]);
+        const [result] = await userDb.query("INSERT INTO users (first_name, last_name, email, password_hash) VALUES (?, ?, ?, ?)", [first_name, last_name, email, passwordHash]);
 
         return res.status(201).json({ok: true, user_id: result.insertId}); 
     } catch (error){
@@ -36,7 +36,7 @@ router.post("/login", async(req, res) => {
             return res.status(400).json({ok: false, error: "Email and password must be provided."});
         }
         const [rows] = await userDb.query(
-            'SELECT user_id, first_name, last_name, email, password_hash FROM users WHERE email = ?', [email]
+            'SELECT user_id, first_name, last_name, email, role, password_hash FROM users WHERE email = ?', [email]
         );
 
         if (rows.length === 0){

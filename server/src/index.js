@@ -1,15 +1,14 @@
 const express = require('express');
 const cors = require('cors');
-require("dotenv").config();
+require("dotenv").config({path: __dirname + "/.env"});
 
-const authorizationRoutes = require("./backend/routes/authorization.js");
-
+const authorizationRoutes = require("../../source/backend/backend/routes/authorization");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/", (req, res) => res.send("Xyon is running"));
+app.get("/", (req, res) => res.send("Xyon is running"));
 
 app.use("/api/auth", authorizationRoutes);
 
