@@ -27,6 +27,6 @@ USE xyon_event_db;
 
 SELECT e.event_id, e.title, e.start_time, e.end_time, e.location, c.name AS calendar_name
 FROM xyon_event_db.events e
-JOIN calendars c ON e.calendar_id = c.calendar_id
+JOIN xyon_event_db.calendars c ON e.calendar_id = c.calendar_id
 WHERE c.user_id = 1
 ORDER BY e.start_time;
