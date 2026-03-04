@@ -1,6 +1,29 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
+import LoginPage from "./view/LoginPage";
 import CalendarPage from "./pages/CalendarPage";
 
 export default function App() {
-  return <CalendarPage />;
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        setIsAuthenticated(!!token);
+    }, []);
+
+    function loginSuccessful(){
+      setIsAuthenticated(true);
+    }
+    
+    function logout(){
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setIsAuthenticated(false);
+    }
+
+    return isAuthenticated ? (
+      <CalendarPage onLogout={logout} />
+    ) : (
+      <LoginPage onLoginSuccess={loginSuccessful} />
+    )
+
 }

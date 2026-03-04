@@ -29,7 +29,7 @@ router.post("/register", async(req, res) => {
 })
 
 //Signing in for returning users
-router.post("/login", async(req, res) => {
+/*router.post("/login", async(req, res) => {
     try {
         const {email, password} = req.body;
         if (!email || !password){
@@ -71,6 +71,58 @@ router.post("/login", async(req, res) => {
         console.error(error);
         return res.status(500).json({ok: false, error: "An error occurred while logging in."});
     }
+});*/
+
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    console.log("LOGIN ATTEMPT:", email);
+
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, error: "Email and password must be provided." });
+    }
+
+    const [rows] = await userDb.query(
+      "SELECT user_id, first_name, last_name, email, role, password_hash FROM users WHERE email = ?",
+      [email]
+    );
+    console.log("ROWS FOUND:", rows.length);
+
+    if (rows.length === 0) {
+      return res.status(400).json({ ok: false, error: "Invalid email or password." });
+    }
+
+    const user = rows[0];
+    console.log("USER ROLE:", user.role);
+
+    const compare = await bcrypt.compare(password, user.password_hash);
+    console.log("PASSWORD MATCH:", compare);
+
+    if (!compare) {
+      return res.status(400).json({ ok: false, error: "Invalid email or password." });
+    }
+
+    const token = jwt.sign(
+      { user_id: user.user_id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "3h" }
+    );
+
+    return res.json({
+      ok: true,
+      token,
+      user: {
+        user_id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+    return res.status(500).json({ ok: false, error: "An error occurred while logging in." });
+  }
 });
 
 module.exports = router;

@@ -36,7 +36,7 @@ const toHM = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
 const addMinutes = (d, mins) => new Date(d.getTime() + mins * 60000);
 
-export default function CalendarPage() {
+export default function CalendarPage(onLogout) {
   const calendarRef = useRef(null);
 
   const [events, setEvents] = useState(seed);
