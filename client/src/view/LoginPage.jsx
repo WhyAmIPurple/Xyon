@@ -25,7 +25,7 @@ export default function LoginPage(){
         });
 
         const data  = await response.json();
-        if (!esponse.ok || !data.ok){
+        if (!response.ok || !data.ok){
             setMessage(data.error || data.message || "Login unsuccessful");
             return;
         }
