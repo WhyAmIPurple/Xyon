@@ -1,7 +1,7 @@
 USE xyon_event_db;
 
 -- CALENDARS table: each user can have calendars (Personal, Canvas, Engage, etc.)
-CREATE TABLE calendars (
+CREATE TABLE IF NOT EXISTS calendars (
   calendar_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id       BIGINT NOT NULL,  
   name          VARCHAR(100) NOT NULL,
@@ -14,11 +14,12 @@ CREATE TABLE calendars (
 ) ENGINE=InnoDB;
 
 -- EVENTS table: events belong to a calendar
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
   event_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
   calendar_id    BIGINT NOT NULL,
 
   title          VARCHAR(200) NOT NULL,
+  course         VARCHAR(100),
   description    TEXT,
   location       VARCHAR(255),
 
@@ -37,3 +38,6 @@ CREATE TABLE events (
 
   INDEX idx_event_time (calendar_id, start_time)
 ) ENGINE=InnoDB;
+
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS course VARCHAR(100) AFTER title;

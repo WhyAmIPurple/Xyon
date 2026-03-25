@@ -13,10 +13,15 @@ ALTER TABLE users AUTO_INCREMENT = 1;
 
 
 -- STEP 2: create demo user
+-- Real users should be created through the app registration flow, which hashes
+-- passwords automatically before saving to the database.
+-- These rows are only seed/demo users, so their bcrypt hashes are pre-generated.
 USE xyon_user_db;
 
 INSERT INTO users (first_name, last_name, email, password_hash, role)
-VALUES ('Demo', 'User', 'demo@student.edu', 'HASHED_PASSWORD', 'student');
+VALUES
+  ('Admin', 'One', 'admin1@xyon.com', '$2b$12$wJo5nrzXKuoGG/JG/WanNuIA15MEQ6..CDpo.aH0urRCNNWvomZs2', 'admin'),
+  ('Demo', 'User', 'demo@student.edu', '$2b$12$aT2GDmJ10A0yx2nGARf7B.1SVE6uHDCaMJx1TcqYRElTJ2o9FPHUy', 'student');
 
 
 -- STEP 3: create calendar for that user
