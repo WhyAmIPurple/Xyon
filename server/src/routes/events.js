@@ -3,6 +3,10 @@ const eventDb = require("../db/event_db.js");
 
 const router = express.Router();
 
+// Users live in xyon_user_db, but calendar/event data lives in xyon_event_db.
+// Because of that split, we look up a user's events through the calendars table.
+
+// The UI sends "Class" / "Assignment", but the database stores lowercase enum values.
 function normalizeEventType(kind) {
     if (kind === "Assignment" || kind === "assignment") {
         return "assignment";
@@ -15,6 +19,7 @@ function normalizeEventType(kind) {
     return "personal";
 }
 
+// FullCalendar gives us ISO-style strings. MySQL DATETIME wants "YYYY-MM-DD HH:MM:SS".
 function normalizeDateTime(value) {
     if (!value) return null;
 
@@ -26,6 +31,7 @@ function normalizeDateTime(value) {
 }
 
 async function getOrCreateDefaultCalendar(userId) {
+    // We keep one default calendar per user so new events always have somewhere to go.
     const [existing] = await eventDb.query(
         `SELECT calendar_id
          FROM calendars
@@ -56,6 +62,8 @@ router.get("/", async (req, res) => {
             return res.status(400).json({ ok: false, error: "Valid user_id is required." });
         }
 
+        // Events do not store user_id directly, so we join through calendars to scope by user.
+        // This is also what lets one user have more than one calendar later if we need it.
         const [rows] = await eventDb.query(
             `SELECT
                 e.event_id,
@@ -101,6 +109,12 @@ router.post("/", async (req, res) => {
 
         const calendarId = await getOrCreateDefaultCalendar(userId);
 
+        // This route replaced the old in-memory event array so new events survive refreshes
+        // and server restarts by being written to MySQL.
+        // The current modal only sends title/course/date/time, so description/location stay NULL.
+        // Course is optional, so we store null when it is left blank.
+        // For assignments, the frontend may only send one time.
+        // In that case we store the same value in both start_time and end_time.
         const [result] = await eventDb.query(
             `INSERT INTO events
                 (calendar_id, title, course, description, location, start_time, end_time, all_day, event_type)
