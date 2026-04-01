@@ -36,7 +36,7 @@ const toHM = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
 const addMinutes = (d, mins) => new Date(d.getTime() + mins * 60000);
 
-export default function CalendarPage(onLogout) {
+export default function CalendarPage({onLogout}) {
   const calendarRef = useRef(null);
 
   const [events, setEvents] = useState(seed);
@@ -201,7 +201,8 @@ export default function CalendarPage(onLogout) {
   };
 
   return (
-    <AppShell>
+    // AppShell owns the sidebar, so we pass logout down to the Sign Out item there.
+    <AppShell onLogout={onLogout}>
       {/* Top header (single source of truth) */}
       <div className="flex items-start justify-between gap-4">
         <div>

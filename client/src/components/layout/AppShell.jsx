@@ -81,6 +81,7 @@ export default function AppShell({ children, onLogout }) {
               <div className="space-y-1">
                 <NavItem label="Account" />
                 <NavItem label="Settings" />
+                {/* This calls the logout function from App.jsx through CalendarPage.jsx. */}
                 <NavItem label="Sign Out" onClick={onLogout} />
               </div>
             </div>

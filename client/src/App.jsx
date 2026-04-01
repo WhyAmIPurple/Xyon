@@ -15,6 +15,7 @@ export default function App() {
     }
     
     function logout(){
+      // Clear the saved session and drop back to the login screen.
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       setIsAuthenticated(false);
