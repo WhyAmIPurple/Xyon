@@ -36,7 +36,7 @@ const toHM = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
 const addMinutes = (d, mins) => new Date(d.getTime() + mins * 60000);
 
-export default function CalendarPage() {
+export default function CalendarPage({ onLogout, user }) {
   const calendarRef = useRef(null);
 
   const [events, setEvents] = useState(seed);
@@ -104,21 +104,51 @@ export default function CalendarPage() {
     setShowAdd(true);
   };
 
-  const onCreate = (payload) => {
-    const color = payload.kind === "Class" ? "#bca9d8" : "#a9c0e8";
+  const onCreate = async (payload) => {
+    const storedUser = localStorage.getItem("user");
 
-    const newEvent = {
-      id: String(Date.now()),
-      title: payload.course ? `${payload.course} — ${payload.title}` : payload.title,
-      start: payload.start,
-      end: payload.end,
-      allDay: payload.allDay,
-      backgroundColor: color,
-      borderColor: color,
-      extendedProps: { kind: payload.kind, course: payload.course }
-    };
+    if (!storedUser) {
+      alert("Please log in again before adding an event.");
+      return;
+    }
 
-    setEvents((p) => [...p, newEvent]);
+    const user = JSON.parse(storedUser);
+
+    try {
+      const response = await fetch("http://localhost:3001/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.user_id,
+          ...payload
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        alert(data.error || "Failed to save event.");
+        return;
+      }
+
+      const color = payload.kind === "Class" ? "#bca9d8" : "#a9c0e8";
+
+      const newEvent = {
+        id: String(data.event_id),
+        title: payload.course ? `${payload.course} — ${payload.title}` : payload.title,
+        start: payload.start,
+        end: payload.end || payload.start,
+        allDay: payload.allDay,
+        backgroundColor: color,
+        borderColor: color,
+        extendedProps: { kind: payload.kind, course: payload.course }
+      };
+
+      setEvents((p) => [...p, newEvent]);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to save event.");
+    }
   };
 
   const onEventClick = (info) => {
@@ -171,7 +201,8 @@ export default function CalendarPage() {
   };
 
   return (
-    <AppShell>
+    // AppShell owns the sidebar, so we pass logout down to the Sign Out item there.
+    <AppShell onLogout={onLogout} user={user}>
       {/* Top header (single source of truth) */}
       <div className="flex items-start justify-between gap-4">
         <div>

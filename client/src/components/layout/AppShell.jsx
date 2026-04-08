@@ -9,9 +9,10 @@ function IconButton({ children }) {
   );
 }
 
-function NavItem({ active, label }) {
+function NavItem({ active, label, onClick }) {
   return (
     <button
+      onClick={onClick}
       className={[
         "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm",
         active
@@ -28,7 +29,12 @@ function NavItem({ active, label }) {
 }
 
 import logo from "../../assets/logo.png";
-export default function AppShell({ children }) {
+export default function AppShell({ children, onLogout, user }) {
+  // Fall back to the old placeholder when no saved user is available yet.
+  const displayName = user
+    ? `${user.first_name} ${user.last_name}`
+    : "John Doe";
+
   return (
     <div className="h-screen overflow-hidden bg-xyon-bg text-xyon-ink">
       {/* Top bar */}
@@ -47,7 +53,7 @@ export default function AppShell({ children }) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-xyon-muted">
               <div className="h-8 w-8 rounded-full bg-white/70 border border-xyon-line" />
-              <span className="font-semibold text-xyon-ink">John Doe</span>
+              <span className="font-semibold text-xyon-ink">{displayName}</span>
             </div>
             <IconButton>
               <span className="text-xs">🔔</span>
@@ -80,7 +86,8 @@ export default function AppShell({ children }) {
               <div className="space-y-1">
                 <NavItem label="Account" />
                 <NavItem label="Settings" />
-                <NavItem label="Sign Out" />
+                {/* This calls the logout function from App.jsx through CalendarPage.jsx. */}
+                <NavItem label="Sign Out" onClick={onLogout} />
               </div>
             </div>
           </aside>
