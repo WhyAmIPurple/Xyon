@@ -14,13 +14,13 @@ app.use("/api/auth", authorizationRoutes);
 
 let events = [];
 
-//app.get('/health', (req, res) => {
-//  res.json({ status: 'OK' });
-//});
+/*app.get('/health', (req, res) => {
+  res.json({ status: 'OK' });
+});
 
-//app.get('/api/events', (req, res) => {
-//  res.json(events);
-//});
+app.get('/api/events', (req, res) => {
+  res.json(events);
+});*/
 
 app.post('/api/events', (req, res) => {
   const event = { id: Date.now(), ...req.body };
