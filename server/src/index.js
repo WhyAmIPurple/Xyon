@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require("dotenv").config({path: __dirname + "/.env"});
 
-const authorizationRoutes = require("../../source/backend/backend/routes/authorization");
+const authorizationRoutes = require("./routes/authorization");
 const app = express();
 
 app.use(cors());
