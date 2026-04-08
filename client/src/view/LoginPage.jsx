@@ -1,15 +1,14 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import "./Page.css";
+import logo from "../assets/logo.png";
 
-export default function LoginPage({onLoginSuccess}){
+export default function LoginPage({ onLoginSuccess, onShowSignup }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
 
 async function handleSubmit(e) {
     e.preventDefault();
-    if(email === "example@exaample.com" && password === "1234") { setMessage("Login successful"); } else { setMessage("Wrong email or password"); } 
     setMessage("");
 
     try {
@@ -42,7 +41,7 @@ async function handleSubmit(e) {
 return (
 <div> 
     <header className = "navbar"> 
-    <img src= "src/view/XyonLogo.png" alt="Xyon Logo" className="logo" />
+    <img src={logo} alt="Xyon Logo" className="logo" />
     </header>
     <div className = "login-page"> 
         <div className = "login-card">
@@ -70,8 +69,8 @@ return (
                 </button> 
                 </form> 
                 
-                <div className = "forgot-password">
-                    Forgot Email or Password? 
+                <div className="forgot-password" onClick={onShowSignup}>
+                    Don&apos;t have an account? Sign up
                 </div>
 
                     {message && <p className = "login-message">{message}</p>}
