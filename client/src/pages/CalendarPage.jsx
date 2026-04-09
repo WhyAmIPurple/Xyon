@@ -5,27 +5,14 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import AppShell from "../components/layout/AppShell";
 import AddEventModal from "../components/common/AddEventModal";
+import EditEventModal from "../components/common/EditEventModal";
 
-const seed = [
-  {
-    id: "1",
-    title: "James Barrera’s Birthday",
-    start: "2026-03-05",
-    allDay: true,
-    backgroundColor: "#f7b4c6",
-    borderColor: "#f7b4c6"
-  },
-  {
-    id: "2",
-    title: "AMAT 320",
-    start: "2026-03-02T08:00:00",
-    end: "2026-03-02T10:30:00",
-    backgroundColor: "#b9d3b4",
-    borderColor: "#b9d3b4"
-  }
-];
+const ACCENT = "var(--xyon-accent)";
 
-const ACCENT = "#E6ABAB";
+const eventColor = (type) => ({
+  class: "#b9d3b4", assignment: "#a9c0e8", exam: "#bca9d8",
+  club: "#f5e3a3", personal: "#f7b4c6", work: "#c8c8c8",
+}[type] || "#d4d4d4");
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -36,13 +23,15 @@ const toHM = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
 const addMinutes = (d, mins) => new Date(d.getTime() + mins * 60000);
 
-export default function CalendarPage({ onLogout, user }) {
+export default function CalendarPage({ onLogout, user, onNavigate }) {
   const calendarRef = useRef(null);
 
-  const [events, setEvents] = useState(seed);
+  const [events, setEvents] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [editEvent, setEditEvent] = useState(null);
+  const [pendingChange, setPendingChange] = useState(null); // { changeInfo, label }
 
-  const [defaultDateStr, setDefaultDateStr] = useState("2026-03-01");
+  const [defaultDateStr, setDefaultDateStr] = useState(toYMD(new Date()));
   const [defaultStartTime, setDefaultStartTime] = useState("09:00");
   const [defaultEndTime, setDefaultEndTime] = useState("10:15");
   const [defaultDueTime, setDefaultDueTime] = useState("23:59");
@@ -86,6 +75,36 @@ export default function CalendarPage({ onLogout, user }) {
 
   useEffect(() => {
     updateHeaderFromCalendar();
+
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return;
+    const u = JSON.parse(storedUser);
+    fetch(`http://localhost:3001/api/events?user_id=${u.user_id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.ok) return;
+        const loaded = data.events.map((ev) => {
+          const color =
+            ev.event_type === "class"      ? "#b9d3b4" :
+            ev.event_type === "assignment" ? "#a9c0e8" :
+            ev.event_type === "exam"       ? "#bca9d8" :
+            ev.event_type === "club"       ? "#f5e3a3" :
+            ev.event_type === "personal"   ? "#f7b4c6" :
+            ev.event_type === "work"       ? "#c8c8c8" : "#d4d4d4";
+          return {
+            id: String(ev.event_id),
+            title: ev.course && ev.course !== ev.title ? `${ev.course} — ${ev.title}` : ev.title,
+            start: ev.start_time.replace(" ", "T"),
+            end:   ev.end_time.replace(" ", "T"),
+            allDay: !!ev.all_day,
+            backgroundColor: color,
+            borderColor: color,
+            extendedProps: { kind: ev.event_type, course: ev.course, originalTitle: ev.title }
+          };
+        });
+        setEvents(loaded);
+      })
+      .catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -131,17 +150,19 @@ export default function CalendarPage({ onLogout, user }) {
         return;
       }
 
-      const color = payload.kind === "Class" ? "#bca9d8" : "#a9c0e8";
+      const color = eventColor(payload.kind.toLowerCase());
 
       const newEvent = {
         id: String(data.event_id),
-        title: payload.course ? `${payload.course} — ${payload.title}` : payload.title,
+        title: payload.course && payload.course !== payload.title
+          ? `${payload.course} — ${payload.title}`
+          : payload.title,
         start: payload.start,
         end: payload.end || payload.start,
         allDay: payload.allDay,
         backgroundColor: color,
         borderColor: color,
-        extendedProps: { kind: payload.kind, course: payload.course }
+        extendedProps: { kind: payload.kind, course: payload.course, originalTitle: payload.title }
       };
 
       setEvents((p) => [...p, newEvent]);
@@ -152,28 +173,102 @@ export default function CalendarPage({ onLogout, user }) {
   };
 
   const onEventClick = (info) => {
-    const ok = confirm(`Delete "${info.event.title}"?`);
-    if (!ok) return;
-    const id = info.event.id;
-    info.event.remove();
-    setEvents((p) => p.filter((e) => e.id !== id));
+    setEditEvent(info.event);
+  };
+
+  const onEdit = async ({ id, kind, title, course, start, end, allDay }) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/events/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, course, kind, start, end, allDay }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) { alert(data.error || "Failed to save event."); return; }
+      const color = eventColor(kind);
+      setEvents((prev) => prev.map((e) =>
+        e.id === id
+          ? { ...e, title: course ? `${course} — ${title}` : title, start, end, allDay,
+              backgroundColor: color, borderColor: color,
+              extendedProps: { kind, course, originalTitle: title } }
+          : e
+      ));
+      setEditEvent(null);
+    } catch { alert("Failed to save event."); }
+  };
+
+  const onDelete = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/events/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.ok) { alert(data.error || "Failed to delete event."); return; }
+      setEvents((prev) => prev.filter((e) => e.id !== id));
+      setEditEvent(null);
+    } catch { alert("Failed to delete event."); }
+  };
+
+  const fmtEventTime = (ev) => {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      weekday: "short", month: "short", day: "numeric",
+      hour: "numeric", minute: "2-digit"
+    });
+    if (ev.allDay) {
+      const d = new Intl.DateTimeFormat("en-US", {
+        weekday: "short", month: "short", day: "numeric"
+      });
+      return `${d.format(ev.start)} (all day)`;
+    }
+    return ev.end
+      ? `${fmt.format(ev.start)} – ${new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(ev.end)}`
+      : fmt.format(ev.start);
   };
 
   const onEventChange = (changeInfo) => {
     const ev = changeInfo.event;
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === ev.id
-          ? {
-              ...e,
-              title: ev.title,
-              start: ev.startStr,
-              end: ev.endStr || null,
-              allDay: ev.allDay
-            }
-          : e
-      )
-    );
+    setPendingChange({
+      changeInfo,
+      label: fmtEventTime(ev)
+    });
+  };
+
+  const confirmChange = async () => {
+    const { changeInfo } = pendingChange;
+    const ev = changeInfo.event;
+    setPendingChange(null);
+
+    try {
+      const res = await fetch(`http://localhost:3001/api/events/${ev.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start: ev.startStr,
+          end: ev.endStr || ev.startStr,
+          allDay: ev.allDay
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        alert(data.error || "Failed to save change.");
+        changeInfo.revert();
+        return;
+      }
+      // Sync local state with the new times
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === ev.id
+            ? { ...e, start: ev.startStr, end: ev.endStr || null, allDay: ev.allDay }
+            : e
+        )
+      );
+    } catch {
+      alert("Failed to save change.");
+      changeInfo.revert();
+    }
+  };
+
+  const cancelChange = () => {
+    pendingChange?.changeInfo.revert();
+    setPendingChange(null);
   };
 
   const goPrev = () => {
@@ -202,21 +297,21 @@ export default function CalendarPage({ onLogout, user }) {
 
   return (
     // AppShell owns the sidebar, so we pass logout down to the Sign Out item there.
-    <AppShell onLogout={onLogout} user={user}>
+    <AppShell onLogout={onLogout} user={user} activePage="calendar" onNavigate={onNavigate}>
       {/* Top header (single source of truth) */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold">Calendar View</h2>
-          <p className="text-sm text-xyon-muted mt-1">
+          {/* <p className="text-sm text-xyon-muted mt-1">
             Here’s what is coming up:
-          </p>
+          </p> */}
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-xs text-xyon-muted">Showing date:</div>
+          {/*<div className="text-xs text-xyon-muted">Showing date:</div>
           <div className="px-4 py-2 rounded-xl bg-xyon-pill border border-xyon-line text-sm font-semibold">
             {rangeLabel}
-          </div>
+          </div> */}
           <div className="text-4xl font-extrabold tracking-tight text-xyon-ink/70">
             {titleLabel}
           </div>
@@ -282,7 +377,6 @@ export default function CalendarPage({ onLogout, user }) {
           ref={calendarRef}
           plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
-          initialDate="2026-03-01"
           height="60vh"
           editable={true}
           selectable={true}
@@ -346,6 +440,43 @@ export default function CalendarPage({ onLogout, user }) {
         defaultEndTime={defaultEndTime}
         defaultDueTime={defaultDueTime}
       />
+
+      <EditEventModal
+        open={!!editEvent}
+        event={editEvent}
+        onClose={() => setEditEvent(null)}
+        onSave={onEdit}
+        onDelete={onDelete}
+      />
+
+      {pendingChange && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/30" onClick={cancelChange} />
+          <div className="absolute left-1/2 top-1/2 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-xxl bg-xyon-card border border-xyon-line shadow-soft p-6">
+            <h3 className="text-lg font-extrabold">Save change?</h3>
+            <p className="text-sm text-xyon-muted mt-1">
+              Move <span className="font-semibold text-xyon-ink">"{pendingChange.changeInfo.event.title}"</span> to:
+            </p>
+            <p className="mt-2 px-3 py-2 rounded-xl bg-xyon-pill border border-xyon-line text-sm font-semibold">
+              {pendingChange.label}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded-xl border border-xyon-line bg-white/60 hover:bg-white text-sm font-semibold"
+                onClick={cancelChange}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded-xl bg-xyon-ink text-white hover:opacity-90 text-sm font-semibold"
+                onClick={confirmChange}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

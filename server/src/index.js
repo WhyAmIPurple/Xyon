@@ -4,6 +4,7 @@ require("dotenv").config({path: __dirname + "/.env"});
 
 const authorizationRoutes = require("./routes/authorization");
 const eventRoutes = require("./routes/events");
+const todoRoutes = require("./routes/todos");
 const app = express();
 
 app.use(cors());
@@ -13,5 +14,6 @@ app.get("/", (req, res) => res.send("Xyon is running"));
 
 app.use("/api/auth", authorizationRoutes);
 app.use("/api/events", eventRoutes);
+app.use("/api/todos", todoRoutes);
 
 app.listen(3001, () => console.log('Server running on port 3001'));

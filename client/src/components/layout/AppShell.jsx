@@ -1,13 +1,6 @@
 import React from "react";
 
 
-function IconButton({ children }) {
-  return (
-    <button className="h-9 w-9 grid place-items-center rounded-full bg-white/60 border border-xyon-line hover:bg-white">
-      {children}
-    </button>
-  );
-}
 
 function NavItem({ active, label, onClick }) {
   return (
@@ -29,7 +22,7 @@ function NavItem({ active, label, onClick }) {
 }
 
 import logo from "../../assets/logo.png";
-export default function AppShell({ children, onLogout, user }) {
+export default function AppShell({ children, onLogout, user, activePage = "calendar", onNavigate }) {
   // Fall back to the old placeholder when no saved user is available yet.
   const displayName = user
     ? `${user.first_name} ${user.last_name}`
@@ -50,17 +43,9 @@ export default function AppShell({ children, onLogout, user }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-xyon-muted">
-              <div className="h-8 w-8 rounded-full bg-white/70 border border-xyon-line" />
-              <span className="font-semibold text-xyon-ink">{displayName}</span>
-            </div>
-            <IconButton>
-              <span className="text-xs">🔔</span>
-            </IconButton>
-            <IconButton>
-              <span className="text-xs">✉️</span>
-            </IconButton>
+          <div className="flex items-center gap-2 text-sm text-xyon-muted">
+            <div className="h-8 w-8 rounded-full bg-white/70 border border-xyon-line" />
+            <span className="font-semibold text-xyon-ink">{displayName}</span>
           </div>
         </div>
       </header>
@@ -71,12 +56,12 @@ export default function AppShell({ children, onLogout, user }) {
           {/* Sidebar */}
           <aside className="rounded-xxl bg-xyon-card border border-xyon-line shadow-soft p-4">
             <div className="space-y-1">
-              <NavItem label="Dashboard" />
-              <NavItem active label="Calendar" />
-              <NavItem label="List" />
-              <NavItem label="Classes" />
-              <NavItem label="Edit Events" />
-              <NavItem label="Menu" />
+              <NavItem active={activePage === "dashboard"} label="Dashboard" onClick={() => onNavigate?.("dashboard")} />
+              <NavItem active={activePage === "calendar"} label="Calendar" onClick={() => onNavigate?.("calendar")} />
+              <NavItem active={activePage === "list"} label="List" onClick={() => onNavigate?.("list")} />
+              <NavItem active={activePage === "classes"} label="Classes" onClick={() => onNavigate?.("classes")} />
+              <NavItem active={activePage === "todo"} label="To Do" onClick={() => onNavigate?.("todo")} />
+              <NavItem active={activePage === "settings"} label="Settings" onClick={() => onNavigate?.("settings")} />
             </div>
 
             <div className="mt-6 pt-6 border-t border-xyon-line">
@@ -84,8 +69,7 @@ export default function AppShell({ children, onLogout, user }) {
                 Account Details
               </div>
               <div className="space-y-1">
-                <NavItem label="Account" />
-                <NavItem label="Settings" />
+                <NavItem active={activePage === "account"} label="Account" onClick={() => onNavigate?.("account")} />
                 {/* This calls the logout function from App.jsx through CalendarPage.jsx. */}
                 <NavItem label="Sign Out" onClick={onLogout} />
               </div>

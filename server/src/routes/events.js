@@ -141,4 +141,71 @@ router.post("/", async (req, res) => {
     }
 });
 
+router.put("/:id", async (req, res) => {
+    try {
+        const eventId = Number(req.params.id);
+        const { start, end, allDay, title, course, kind } = req.body;
+
+        if (!Number.isInteger(eventId) || eventId <= 0) {
+            return res.status(400).json({ ok: false, error: "Valid event_id is required." });
+        }
+
+        const startTime = normalizeDateTime(start);
+        const endTime   = normalizeDateTime(end || start);
+
+        if (!startTime || !endTime) {
+            return res.status(400).json({ ok: false, error: "Start and end times are required." });
+        }
+
+        // Build the update dynamically — title/course/kind are only sent from the edit modal,
+        // not from the drag-drop confirm, so we leave them alone when absent.
+        const fields = ["start_time = ?", "end_time = ?", "all_day = ?"];
+        const params = [startTime, endTime, allDay ? 1 : 0];
+
+        if (title !== undefined) { fields.push("title = ?");      params.push(title || ""); }
+        if (course !== undefined) { fields.push("course = ?");     params.push(course || null); }
+        if (kind   !== undefined) { fields.push("event_type = ?"); params.push(normalizeEventType(kind)); }
+
+        params.push(eventId);
+
+        const [result] = await eventDb.query(
+            `UPDATE events SET ${fields.join(", ")} WHERE event_id = ?`,
+            params
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ ok: false, error: "Event not found." });
+        }
+
+        return res.json({ ok: true });
+    } catch (error) {
+        console.error("EVENT UPDATE ERROR:", error);
+        return res.status(500).json({ ok: false, error: "Failed to update event." });
+    }
+});
+
+router.delete("/:id", async (req, res) => {
+    try {
+        const eventId = Number(req.params.id);
+
+        if (!Number.isInteger(eventId) || eventId <= 0) {
+            return res.status(400).json({ ok: false, error: "Valid event_id is required." });
+        }
+
+        const [result] = await eventDb.query(
+            `DELETE FROM events WHERE event_id = ?`,
+            [eventId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ ok: false, error: "Event not found." });
+        }
+
+        return res.json({ ok: true });
+    } catch (error) {
+        console.error("EVENT DELETE ERROR:", error);
+        return res.status(500).json({ ok: false, error: "Failed to delete event." });
+    }
+});
+
 module.exports = router;

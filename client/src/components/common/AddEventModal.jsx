@@ -51,12 +51,11 @@ export default function AddEventModal({
     }, [open, defaultDateStr, defaultStartTime, defaultEndTime, defaultDueTime]);
 
   const canSubmit = useMemo(() => {
-    if (!title.trim()) return false;
     if (type === "Class") {
-      return startTime < endTime; // simple validation
+      return course.trim().length > 0 && startTime < endTime;
     }
-    return true;
-  }, [title, type, startTime, endTime]);
+    return title.trim().length > 0;
+  }, [title, course, type, startTime, endTime]);
 
   if (!open) return null;
 
@@ -66,7 +65,7 @@ export default function AddEventModal({
     if (type === "Class") {
       onCreate({
         kind: "Class",
-        title: title.trim(),
+        title: course.trim(),  // course name is the title for a class
         course: course.trim(),
         start: combineDateTime(date, startTime),
         end: combineDateTime(date, endTime),
@@ -129,20 +128,24 @@ export default function AddEventModal({
           ))}
         </div>
 
-        {/* Common fields */}
+        {/* Fields */}
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <label className="text-xs text-xyon-muted">Title</label>
-            <input
-              className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={type === "Class" ? "e.g., CSIT 415 Lecture" : "e.g., HW 3 Due"}
-            />
-          </div>
+          {type === "Assignment" && (
+            <div className="col-span-2">
+              <label className="text-xs text-xyon-muted">Title</label>
+              <input
+                className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., HW 3 Due"
+              />
+            </div>
+          )}
 
           <div className="col-span-2">
-            <label className="text-xs text-xyon-muted">Course (optional)</label>
+            <label className="text-xs text-xyon-muted">
+              {type === "Class" ? "Course" : "Course (optional)"}
+            </label>
             <input
               className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
               value={course}
@@ -198,7 +201,7 @@ export default function AddEventModal({
         {!canSubmit && (
           <div className="mt-3 text-sm text-red-600">
             {type === "Class"
-              ? "Title is required and start time must be before end time."
+              ? "Course is required and start time must be before end time."
               : "Title is required."}
           </div>
         )}

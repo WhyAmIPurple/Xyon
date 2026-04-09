@@ -2,5 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+:root { --xyon-accent: #E6ABAB; }
+
 html, body, #root { height: 100%; }
 body { background: #f3f1ed; }
