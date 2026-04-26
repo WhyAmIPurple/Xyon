@@ -30,6 +30,18 @@ function normalizeDateTime(value) {
     return null;
 }
 
+async function getEventSource(eventId) {
+    const [rows] = await eventDb.query(
+        `SELECT external_source
+         FROM events
+         WHERE event_id = ?
+         LIMIT 1`,
+        [eventId]
+    );
+
+    return rows[0]?.external_source || null;
+}
+
 async function getOrCreateDefaultCalendar(userId) {
     // We keep one default calendar per user so new events always have somewhere to go.
     const [existing] = await eventDb.query(
@@ -75,6 +87,9 @@ router.get("/", async (req, res) => {
                 e.end_time,
                 e.all_day,
                 e.event_type,
+                e.external_source,
+                e.external_id,
+                e.external_url,
                 c.calendar_id,
                 c.name AS calendar_name
              FROM events e
@@ -117,8 +132,8 @@ router.post("/", async (req, res) => {
         // In that case we store the same value in both start_time and end_time.
         const [result] = await eventDb.query(
             `INSERT INTO events
-                (calendar_id, title, course, description, location, start_time, end_time, all_day, event_type)
-             VALUES (?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
+                (calendar_id, title, course, description, location, start_time, end_time, all_day, event_type, external_source, external_id, external_url)
+             VALUES (?, ?, ?, NULL, NULL, ?, ?, ?, ?, NULL, NULL, NULL)`,
             [
                 calendarId,
                 title,
@@ -138,6 +153,85 @@ router.post("/", async (req, res) => {
     } catch (error) {
         console.error("EVENT CREATE ERROR:", error);
         return res.status(500).json({ ok: false, error: "Failed to save event." });
+    }
+});
+
+router.put("/:id", async (req, res) => {
+    try {
+        const eventId = Number(req.params.id);
+        const { start, end, allDay, title, course, kind } = req.body;
+
+        if (!Number.isInteger(eventId) || eventId <= 0) {
+            return res.status(400).json({ ok: false, error: "Valid event_id is required." });
+        }
+
+        const externalSource = await getEventSource(eventId);
+
+        if (externalSource === "canvas") {
+            return res.status(400).json({ ok: false, error: "Canvas-synced events must be updated from Canvas." });
+        }
+
+        const startTime = normalizeDateTime(start);
+        const endTime = normalizeDateTime(end || start);
+
+        if (!startTime || !endTime) {
+            return res.status(400).json({ ok: false, error: "Start and end times are required." });
+        }
+
+        const fields = ["start_time = ?", "end_time = ?", "all_day = ?"];
+        const params = [startTime, endTime, allDay ? 1 : 0];
+
+        if (title !== undefined) { fields.push("title = ?"); params.push(title || ""); }
+        if (course !== undefined) { fields.push("course = ?"); params.push(course || null); }
+        if (kind !== undefined) { fields.push("event_type = ?"); params.push(normalizeEventType(kind)); }
+
+        params.push(eventId);
+
+        const [result] = await eventDb.query(
+            `UPDATE events
+             SET ${fields.join(", ")}
+             WHERE event_id = ?`,
+            params
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ ok: false, error: "Event not found." });
+        }
+
+        return res.json({ ok: true });
+    } catch (error) {
+        console.error("EVENT UPDATE ERROR:", error);
+        return res.status(500).json({ ok: false, error: "Failed to update event." });
+    }
+});
+
+router.delete("/:id", async (req, res) => {
+    try {
+        const eventId = Number(req.params.id);
+
+        if (!Number.isInteger(eventId) || eventId <= 0) {
+            return res.status(400).json({ ok: false, error: "Valid event_id is required." });
+        }
+
+        const externalSource = await getEventSource(eventId);
+
+        if (externalSource === "canvas") {
+            return res.status(400).json({ ok: false, error: "Canvas-synced events must be removed from Canvas." });
+        }
+
+        const [result] = await eventDb.query(
+            `DELETE FROM events WHERE event_id = ?`,
+            [eventId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ ok: false, error: "Event not found." });
+        }
+
+        return res.json({ ok: true });
+    } catch (error) {
+        console.error("EVENT DELETE ERROR:", error);
+        return res.status(500).json({ ok: false, error: "Failed to delete event." });
     }
 });
 
