@@ -11,8 +11,9 @@ const ACCENT = "var(--xyon-accent)";
 
 const eventColor = (type) => ({
   class: "#b9d3b4", assignment: "#a9c0e8", exam: "#bca9d8",
-  club: "#f5e3a3", personal: "#f7b4c6", work: "#c8c8c8",
-}[type] || "#d4d4d4");
+  club: "#f5e3a3", extracurricular: "#f5e3a3",
+  personal: "#f7b4c6", work: "#c8c8c8", other: "#d4d4d4",
+}[(type || "").toLowerCase()] || "#d4d4d4");
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -23,7 +24,7 @@ const toHM = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
 const addMinutes = (d, mins) => new Date(d.getTime() + mins * 60000);
 
-export default function CalendarPage({ onLogout, user, onNavigate }) {
+export default function CalendarPage({ onLogout, user, onNavigate, targetDate }) {
   const calendarRef = useRef(null);
 
   const [events, setEvents] = useState([]);
@@ -36,8 +37,10 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
   const [defaultEndTime, setDefaultEndTime] = useState("10:15");
   const [defaultDueTime, setDefaultDueTime] = useState("23:59");
 
+  const defaultView = localStorage.getItem("xyon-default-calendar-view") || "timeGridWeek";
+
   // External header state (single source of truth)
-  const [viewType, setViewType] = useState("timeGridWeek");
+  const [viewType, setViewType] = useState(defaultView);
   const [rangeLabel, setRangeLabel] = useState("");
   const [titleLabel, setTitleLabel] = useState("");
 
@@ -99,7 +102,7 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
             allDay: !!ev.all_day,
             backgroundColor: color,
             borderColor: color,
-            extendedProps: { kind: ev.event_type, course: ev.course, originalTitle: ev.title }
+            extendedProps: { kind: ev.event_type, course: ev.course, originalTitle: ev.title, description: ev.description || null, location: ev.location || null }
           };
         });
         setEvents(loaded);
@@ -137,10 +140,7 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
       const response = await fetch("http://localhost:3001/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user.user_id,
-          ...payload
-        })
+        body: JSON.stringify({ user_id: user.user_id, ...payload })
       });
 
       const data = await response.json();
@@ -162,7 +162,7 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
         allDay: payload.allDay,
         backgroundColor: color,
         borderColor: color,
-        extendedProps: { kind: payload.kind, course: payload.course, originalTitle: payload.title }
+        extendedProps: { kind: payload.kind, course: payload.course, originalTitle: payload.title, description: payload.description || null, location: payload.location || null }
       };
 
       setEvents((p) => [...p, newEvent]);
@@ -176,21 +176,21 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
     setEditEvent(info.event);
   };
 
-  const onEdit = async ({ id, kind, title, course, start, end, allDay }) => {
+  const onEdit = async ({ id, kind, title, course, description, location, start, end, allDay }) => {
     try {
       const res = await fetch(`http://localhost:3001/api/events/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, course, kind, start, end, allDay }),
+        body: JSON.stringify({ title, course, kind, description, location, start, end, allDay }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) { alert(data.error || "Failed to save event."); return; }
       const color = eventColor(kind);
       setEvents((prev) => prev.map((e) =>
         e.id === id
-          ? { ...e, title: course ? `${course} — ${title}` : title, start, end, allDay,
-              backgroundColor: color, borderColor: color,
-              extendedProps: { kind, course, originalTitle: title } }
+          ? { ...e, title: course && course !== title ? `${course} — ${title}` : title,
+              start, end, allDay, backgroundColor: color, borderColor: color,
+              extendedProps: { kind, course, originalTitle: title, description: description || null, location: location || null } }
           : e
       ));
       setEditEvent(null);
@@ -322,7 +322,7 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
       <div className="mt-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
-            className="h-10 w-10 rounded-xl border border-xyon-line bg-white/60 hover:bg-white"
+            className="h-10 w-10 rounded-xl border border-xyon-line bg-xyon-pill2 text-xyon-ink hover:bg-xyon-card text-lg font-semibold"
             onClick={goPrev}
             aria-label="Previous"
             title="Previous"
@@ -331,7 +331,7 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
           </button>
 
           <button
-            className="h-10 w-10 rounded-xl border border-xyon-line bg-white/60 hover:bg-white"
+            className="h-10 w-10 rounded-xl border border-xyon-line bg-xyon-pill2 text-xyon-ink hover:bg-xyon-card text-lg font-semibold"
             onClick={goNext}
             aria-label="Next"
             title="Next"
@@ -340,7 +340,7 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
           </button>
 
           <button
-            className="h-10 px-4 rounded-xl border border-xyon-line bg-white/60 hover:bg-white text-sm font-semibold"
+            className="h-10 px-4 rounded-xl border border-xyon-line bg-xyon-pill2 text-xyon-ink hover:bg-xyon-card text-sm font-semibold"
             onClick={goToday}
           >
             today
@@ -350,18 +350,18 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
         <div className="flex items-center">
           <div className="flex rounded-xl overflow-hidden border border-xyon-line shadow-sm">
             <button
-              className="h-10 px-4 text-sm font-semibold"
+              className="h-10 px-4 text-sm font-semibold text-xyon-ink"
               style={{
-                backgroundColor: viewType === "dayGridMonth" ? ACCENT : "rgba(255,255,255,0.6)"
+                backgroundColor: viewType === "dayGridMonth" ? ACCENT : "var(--xyon-pill2)"
               }}
               onClick={() => setView("dayGridMonth")}
             >
               month
             </button>
             <button
-              className="h-10 px-4 text-sm font-semibold border-l border-xyon-line"
+              className="h-10 px-4 text-sm font-semibold border-l border-xyon-line text-xyon-ink"
               style={{
-                backgroundColor: viewType === "timeGridWeek" ? ACCENT : "rgba(255,255,255,0.6)"
+                backgroundColor: viewType === "timeGridWeek" ? ACCENT : "var(--xyon-pill2)"
               }}
               onClick={() => setView("timeGridWeek")}
             >
@@ -372,11 +372,12 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
       </div>
 
       {/* Calendar */}
-      <div className="mt-4 rounded-xxl bg-[#fbfaf7] border border-xyon-line shadow-soft p-4 h-[calc(100%-120px)] overflow-hidden">
+      <div className="mt-4 rounded-xxl bg-xyon-panel border border-xyon-line shadow-soft p-4 h-[calc(100%-120px)] overflow-hidden">
         <FullCalendar
           ref={calendarRef}
           plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
+          initialView={defaultView}
+          initialDate={targetDate || undefined}
           height="60vh"
           editable={true}
           selectable={true}
@@ -402,28 +403,32 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
           eventChange={onEventChange}
 
           eventDisplay="block"
+          dayMaxEvents={3}
+          eventMinHeight={22}
+          moreLinkContent={(arg) => `+${arg.num} more`}
+          moreLinkClassNames="text-[10px] font-semibold text-xyon-muted hover:text-xyon-ink px-1 py-0.5 rounded"
           eventContent={(arg) => {
             const vt = arg.view.type;
 
-            // Month view: title only (no time)
+            // Month view: title only (no time), truncate for crowded cells
             if (vt === "dayGridMonth") {
               return (
-                <div className="px-1">
-                  <div className="text-[10px] font-bold leading-tight">
+                <div className="px-1 overflow-hidden w-full">
+                  <div className="text-[10px] font-bold leading-tight truncate">
                     {arg.event.title}
                   </div>
                 </div>
               );
             }
 
-            // Week view: title + time
+            // Week view: title + time, truncate for narrow overlapping columns
             return (
-              <div className="px-1">
-                <div className="text-[10px] font-bold leading-tight">
+              <div className="px-1 overflow-hidden w-full">
+                <div className="text-[10px] font-bold leading-tight truncate">
                   {arg.event.title}
                 </div>
                 {!arg.event.allDay && (
-                  <div className="text-[10px] opacity-80">{arg.timeText}</div>
+                  <div className="text-[10px] opacity-80 truncate">{arg.timeText}</div>
                 )}
               </div>
             );
@@ -462,13 +467,13 @@ export default function CalendarPage({ onLogout, user, onNavigate }) {
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <button
-                className="px-4 py-2 rounded-xl border border-xyon-line bg-white/60 hover:bg-white text-sm font-semibold"
+                className="px-4 py-2 rounded-xl border border-xyon-line bg-xyon-pill hover:bg-white text-sm font-semibold"
                 onClick={cancelChange}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded-xl bg-xyon-ink text-white hover:opacity-90 text-sm font-semibold"
+                className="px-4 py-2 rounded-xl bg-xyon-ink text-xyon-bg hover:opacity-90 text-sm font-semibold"
                 onClick={confirmChange}
               >
                 Save

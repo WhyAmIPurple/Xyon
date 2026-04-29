@@ -5,14 +5,17 @@ export default {
     extend: {
       colors: {
         xyon: {
-          accent: "#E6ABAB",
-          bg: "#f3f1ed",
-          card: "#f7f5f1",
-          line: "#e5e1d9",
-          ink: "#1f1f1f",
-          muted: "#6b6b6b",
-          pill: "#e8e2d8",
-          pill2: "#efe9df"
+          accent: "var(--xyon-accent)",
+          bg:     "var(--xyon-bg)",
+          card:   "var(--xyon-card)",
+          panel:  "var(--xyon-panel)",
+          past:   "var(--xyon-past)",
+          line:   "var(--xyon-line)",
+          // ink uses RGB tuple so opacity modifiers (bg-xyon-ink/50) work
+          ink:    "rgb(var(--xyon-ink-rgb) / <alpha-value>)",
+          muted:  "var(--xyon-muted)",
+          pill:   "var(--xyon-pill)",
+          pill2:  "var(--xyon-pill2)",
         }
       },
       boxShadow: { soft: "0 10px 25px rgba(0,0,0,0.06)" },
@@ -21,4 +24,3 @@ export default {
   },
   plugins: []
 };
-

@@ -14,19 +14,24 @@ const COLORS = {
 // ── color picker row ──────────────────────────────────────────────────────────
 function ColorPicker({ current, onChange }) {
   return (
-    <div className="flex items-center gap-1.5">
-      {Object.entries(COLORS).map(([key, { bg, border }]) => (
+    <div className="flex items-center gap-2">
+      {Object.entries(COLORS).map(([key, { border }]) => (
         <button
           key={key}
           title={COLORS[key].label}
           onClick={() => onChange(key)}
-          className="h-5 w-5 rounded-full border-2 transition-transform hover:scale-110"
+          className="h-6 w-6 rounded-full transition-transform hover:scale-110 flex items-center justify-center"
           style={{
-            backgroundColor: bg,
-            borderColor: current === key ? border : "transparent",
-            outline: current === key ? `2px solid ${border}` : "none",
+            backgroundColor: border,
+            boxShadow: current === key
+              ? `0 0 0 2px #fff, 0 0 0 4px ${border}`
+              : `0 0 0 1.5px rgba(0,0,0,0.18)`,
           }}
-        />
+        >
+          {current === key && (
+            <span className="text-[10px] font-bold" style={{ color: "rgba(0,0,0,0.45)" }}>✓</span>
+          )}
+        </button>
       ))}
     </div>
   );
@@ -39,7 +44,7 @@ function TodoCard({ todo, onEdit, onDelete, onTogglePin, onToggleComplete }) {
 
   return (
     <div
-      className="rounded-xxl border p-4 flex flex-col gap-2 break-inside-avoid mb-3 group transition-shadow hover:shadow-md cursor-pointer"
+      className="todo-note-surface rounded-xxl border p-4 flex flex-col gap-2 break-inside-avoid mb-3 group transition-shadow hover:shadow-md cursor-pointer"
       style={{ backgroundColor: bg, borderColor: border }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -61,7 +66,7 @@ function TodoCard({ todo, onEdit, onDelete, onTogglePin, onToggleComplete }) {
 
       {/* Body */}
       {todo.body?.trim() && (
-        <p className={["text-sm text-xyon-muted leading-relaxed whitespace-pre-wrap break-words", todo.completed ? "line-through opacity-50" : ""].join(" ")}>
+        <p className={["todo-muted text-sm text-xyon-muted leading-relaxed whitespace-pre-wrap break-words", todo.completed ? "line-through opacity-50" : ""].join(" ")}>
           {todo.body}
         </p>
       )}
@@ -77,7 +82,7 @@ function TodoCard({ todo, onEdit, onDelete, onTogglePin, onToggleComplete }) {
           <button
             title={todo.completed ? "Mark incomplete" : "Mark complete"}
             onClick={() => onToggleComplete(todo)}
-            className="h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-white/60"
+            className="h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-xyon-pill"
             style={{ borderColor: border }}
           >
             {todo.completed === 1 && (
@@ -89,7 +94,7 @@ function TodoCard({ todo, onEdit, onDelete, onTogglePin, onToggleComplete }) {
           <button
             title={todo.pinned ? "Unpin" : "Pin"}
             onClick={() => onTogglePin(todo)}
-            className="text-xs text-xyon-muted hover:text-xyon-ink px-1.5 py-0.5 rounded-lg hover:bg-white/60"
+            className="text-xs text-xyon-muted hover:text-xyon-ink px-1.5 py-0.5 rounded-lg hover:bg-xyon-pill"
           >
             {todo.pinned === 1 ? "📌" : "📍"}
           </button>
@@ -99,7 +104,7 @@ function TodoCard({ todo, onEdit, onDelete, onTogglePin, onToggleComplete }) {
         <button
           title="Delete"
           onClick={() => onDelete(todo.todo_id)}
-          className="text-xs text-xyon-muted hover:text-red-500 px-1.5 py-0.5 rounded-lg hover:bg-white/60"
+          className="text-xs text-xyon-muted hover:text-red-500 px-1.5 py-0.5 rounded-lg hover:bg-xyon-pill"
         >
           🗑
         </button>
@@ -120,7 +125,7 @@ function EditModal({ todo, onClose, onSave }) {
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div
-        className="absolute left-1/2 top-1/2 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-xxl border shadow-soft p-5 flex flex-col gap-3"
+        className="todo-note-surface absolute left-1/2 top-1/2 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-xxl border shadow-soft p-5 flex flex-col gap-3"
         style={{ backgroundColor: bg, borderColor: border }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -139,7 +144,7 @@ function EditModal({ todo, onClose, onSave }) {
         <div className="flex items-center justify-between">
           <ColorPicker current={color} onChange={setColor} />
           <button
-            className="px-4 py-1.5 rounded-xl bg-xyon-ink text-white text-sm font-semibold hover:opacity-90"
+            className="px-4 py-1.5 rounded-xl bg-xyon-ink text-xyon-bg text-sm font-semibold hover:opacity-90"
             onClick={() => onSave({ title, body, color })}
           >
             Done
@@ -287,7 +292,7 @@ export default function TodoPage({ onLogout, user, onNavigate }) {
         {completed.length > 0 && (
           <button
             onClick={() => setShowCompleted((v) => !v)}
-            className="px-3 py-1.5 rounded-xl border border-xyon-line bg-white/60 hover:bg-white text-xs font-semibold text-xyon-muted"
+            className="px-3 py-1.5 rounded-xl border border-xyon-line bg-xyon-pill hover:bg-white text-xs font-semibold text-xyon-muted"
           >
             {showCompleted ? "Hide" : "Show"} completed ({completed.length})
           </button>
@@ -301,13 +306,13 @@ export default function TodoPage({ onLogout, user, onNavigate }) {
           {!noteOpen ? (
             <div
               onClick={() => setNoteOpen(true)}
-              className="w-full max-w-xl mx-auto rounded-xxl border border-xyon-line bg-white/70 hover:bg-white px-5 py-3 text-sm text-xyon-muted cursor-text shadow-soft"
+              className="w-full max-w-xl mx-auto rounded-xxl border border-xyon-line bg-xyon-panel hover:bg-white px-5 py-3 text-sm text-xyon-muted cursor-text shadow-soft"
             >
               Take a note…
             </div>
           ) : (
             <div
-              className="w-full max-w-xl mx-auto rounded-xxl border shadow-soft p-4 flex flex-col gap-3"
+              className="todo-note-surface w-full max-w-xl mx-auto rounded-xxl border shadow-soft p-4 flex flex-col gap-3"
               style={{ backgroundColor: newBg, borderColor: newBorder }}
             >
               <input
@@ -328,13 +333,13 @@ export default function TodoPage({ onLogout, user, onNavigate }) {
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setNoteTitle(""); setNoteBody(""); setNoteColor("default"); setNoteOpen(false); }}
-                    className="px-3 py-1.5 rounded-xl text-sm font-semibold text-xyon-muted hover:bg-white/60"
+                    className="px-3 py-1.5 rounded-xl text-sm font-semibold text-xyon-muted hover:bg-xyon-pill"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCreateNote}
-                    className="px-3 py-1.5 rounded-xl bg-xyon-ink text-white text-sm font-semibold hover:opacity-90"
+                    className="px-3 py-1.5 rounded-xl bg-xyon-ink text-xyon-bg text-sm font-semibold hover:opacity-90"
                   >
                     Done
                   </button>

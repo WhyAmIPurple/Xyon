@@ -110,7 +110,7 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
       .catch(console.error);
   }, []);
 
-  // Map dateKey → [type, ...] for mini-calendar dots (max 3 per day)
+  // Map dateKey → { dots, moreTypes } for mini-calendar dots
   const dotsByDate = useMemo(() => {
     const map = {};
     events.forEach((ev) => {
@@ -121,12 +121,14 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
       map[key].add(ev.event_type || "other");
     });
     const result = {};
-    Object.entries(map).forEach(([k, s]) => { result[k] = [...s].slice(0, 3); });
+    Object.entries(map).forEach(([k, s]) => {
+      const types = [...s];
+      result[k] = { dots: types.slice(0, 3), moreTypes: Math.max(0, types.length - 3) };
+    });
     return result;
   }, [events]);
 
   const UPCOMING_TYPES = ["assignment", "exam", "club", "personal"];
-  const TODAY_TYPES    = ["class"];
 
   // Upcoming: future assignments/exams/extracurricular/personal, max 6
   const upcoming = useMemo(() => {
@@ -139,13 +141,13 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
       .slice(0, 6);
   }, [events, today]);
 
-  // Today: classes scheduled today
+  // Today: all events scheduled today
   const todayKey = toDateKey(today);
   const todayEvents = useMemo(() => {
     return events
       .filter((ev) => {
         const d = parseDate(ev.start_time);
-        return d && toDateKey(d) === todayKey && TODAY_TYPES.includes(ev.event_type);
+        return d && toDateKey(d) === todayKey;
       })
       .sort((a, b) => parseDate(a.start_time) - parseDate(b.start_time));
   }, [events, todayKey]);
@@ -189,7 +191,7 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
       <div className="mt-5 grid grid-cols-[1fr_300px] gap-5 h-[calc(100%-80px)] overflow-hidden">
 
         {/* ── Mini Calendar ── */}
-        <div className="rounded-xxl bg-[#fbfaf7] border border-xyon-line shadow-soft p-5 overflow-auto">
+        <div className="rounded-xxl bg-xyon-panel border border-xyon-line shadow-soft p-5 overflow-auto">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold">Calendar</h3>
             <button
@@ -221,7 +223,7 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
           </div>
 
           {/* Day-of-week headers */}
-          <div className="grid grid-cols-7 mb-1">
+          <div className="grid grid-cols-7 border-b border-xyon-line mb-2 pb-1">
             {DOW_LABELS.map((d) => (
               <div key={d} className="text-center text-[11px] text-xyon-muted font-semibold py-1">
                 {d}
@@ -235,28 +237,32 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
               {row.map((day, di) => {
                 if (day === null) return <div key={di} className="h-10" />;
                 const cellKey = `${displayMonth.getFullYear()}-${pad2(displayMonth.getMonth() + 1)}-${pad2(day)}`;
-                const dots = dotsByDate[cellKey] || [];
+                const { dots = [], moreTypes = 0 } = dotsByDate[cellKey] || {};
                 const isToday = cellKey === todayKey;
                 return (
                   <div key={di} className="flex flex-col items-center py-0.5">
                     <div
+                      onClick={() => onNavigate("calendar", { date: cellKey })}
                       className={[
-                        "h-8 w-8 flex items-center justify-center rounded-full text-sm cursor-default",
+                        "h-8 w-8 flex items-center justify-center rounded-full text-sm cursor-pointer hover:opacity-70 transition-opacity",
                         isToday
-                          ? "bg-xyon-ink text-white font-bold"
-                          : "text-xyon-ink",
+                          ? "bg-xyon-ink text-xyon-bg font-bold"
+                          : "bg-xyon-pill text-xyon-ink",
                       ].join(" ")}
                     >
                       {day}
                     </div>
-                    <div className="flex gap-0.5 h-2 mt-0.5">
+                    <div className="flex gap-0.5 items-center h-2.5 mt-0.5">
                       {dots.map((type) => (
                         <div
                           key={type}
-                          className="h-1.5 w-1.5 rounded-full"
+                          className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: TYPE_COLOR[type] || "#d4d4d4" }}
                         />
                       ))}
+                      {moreTypes > 0 && (
+                        <span className="text-[8px] font-bold text-xyon-muted leading-none">+{moreTypes}</span>
+                      )}
                     </div>
                   </div>
                 );
@@ -269,11 +275,11 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
         <div className="flex flex-col gap-4 overflow-auto min-h-0">
 
           {/* Upcoming Dates */}
-          <div className="rounded-xxl bg-[#fbfaf7] border border-xyon-line shadow-soft p-4 flex-1 min-h-0 overflow-auto">
+          <div className="rounded-xxl bg-xyon-panel border border-xyon-line shadow-soft p-4 flex-1 min-h-0 overflow-auto">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-bold">Upcoming Dates</h3>
               <button
-                onClick={() => onNavigate("calendar")}
+                onClick={() => onNavigate("list")}
                 className="px-3 py-1 rounded-lg text-[11px] font-semibold hover:opacity-80"
                 style={{ backgroundColor: "var(--xyon-accent)", color: "#fff" }}
               >
@@ -289,9 +295,10 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
                   const d = parseDate(ev.start_time);
                   const type = ev.event_type || "other";
                   return (
-                    <div
+                    <button
                       key={ev.event_id}
-                      className="flex items-center gap-2 rounded-xl bg-xyon-pill/70 px-3 py-2"
+                      onClick={() => onNavigate("list")}
+                      className="w-full flex items-center gap-2 rounded-xl bg-xyon-pill/70 hover:bg-xyon-pill px-3 py-2 text-left transition-colors"
                     >
                       <span className="text-[11px] text-xyon-muted w-11 shrink-0">
                         {formatShortDate(d)}
@@ -299,11 +306,11 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
                       <span className="text-sm font-medium flex-1 truncate">{ev.title}</span>
                       <span
                         className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0"
-                        style={{ backgroundColor: TYPE_COLOR[type] || "#d4d4d4" }}
+                        style={{ backgroundColor: TYPE_COLOR[type] || "#d4d4d4", color: "rgba(30,30,30,0.85)" }}
                       >
                         {TYPE_LABEL[type] || type}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -311,30 +318,40 @@ export default function DashboardPage({ onLogout, user, onNavigate }) {
           </div>
 
           {/* Today */}
-          <div className="rounded-xxl bg-[#fbfaf7] border border-xyon-line shadow-soft p-4 flex-1 min-h-0 overflow-auto">
-            <h3 className="text-base font-bold mb-3">Today</h3>
+          <div className="rounded-xxl bg-xyon-panel border border-xyon-line shadow-soft p-4 flex-1 min-h-0 overflow-auto">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold">Today</h3>
+              <span className="text-xs text-xyon-muted">{todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""}</span>
+            </div>
 
             {todayEvents.length === 0 ? (
               <p className="text-sm text-xyon-muted text-center py-4">
-                No classes today
+                No events today
               </p>
             ) : (
               <div className="space-y-2">
                 {todayEvents.map((ev) => {
                   const start = parseDate(ev.start_time);
                   const end   = parseDate(ev.end_time);
+                  const type  = ev.event_type || "other";
                   const displayTitle = ev.course || ev.title;
                   const timeStr = ev.all_day
                     ? "All day"
-                    : `${formatTime(start)}–${formatTime(end)}`;
+                    : end ? `${formatTime(start)}–${formatTime(end)}` : formatTime(start);
                   return (
                     <div
                       key={ev.event_id}
-                      className="rounded-xl px-4 py-3"
-                      style={{ backgroundColor: TYPE_COLOR.class }}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2"
+                      style={{ backgroundColor: TYPE_COLOR[type] || "#d4d4d4", color: "rgba(30,30,30,0.9)" }}
                     >
-                      <div className="text-sm font-bold">{displayTitle}</div>
-                      <div className="text-xs mt-0.5 opacity-70">{timeStr}</div>
+                      <span className="text-[11px] opacity-70 w-16 shrink-0 font-medium">{timeStr}</span>
+                      <span className="text-sm font-bold flex-1 truncate">{displayTitle}</span>
+                      <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0"
+                        style={{ backgroundColor: "rgba(0,0,0,0.12)" }}
+                      >
+                        {TYPE_LABEL[type] || type}
+                      </span>
                     </div>
                   );
                 })}

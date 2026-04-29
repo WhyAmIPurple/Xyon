@@ -38,21 +38,21 @@ export default function ClassesPage({ onLogout, user, onNavigate }) {
         </div>
         <button
           onClick={() => setShowImport(true)}
-          className="h-10 px-4 rounded-xl bg-xyon-ink text-white text-sm font-semibold hover:opacity-90 flex items-center gap-1.5"
+          className="h-10 px-4 rounded-xl bg-xyon-ink text-xyon-bg text-sm font-semibold hover:opacity-90 flex items-center gap-1.5"
         >
           <span className="text-base leading-none">+</span> Browse Courses
         </button>
       </div>
 
       {/* Body */}
-      <div className="mt-5 rounded-xxl bg-[#fbfaf7] border border-xyon-line shadow-soft h-[calc(100%-80px)] flex items-center justify-center">
+      <div className="mt-5 rounded-xxl bg-xyon-panel border border-xyon-line shadow-soft h-[calc(100%-80px)] flex items-center justify-center">
         <div className="text-center space-y-3">
           <p className="text-xyon-muted text-sm max-w-sm">
             Use <strong>Browse Courses</strong> to search MSU's course catalog and import your schedule directly to your calendar.
           </p>
           <button
             onClick={() => setShowImport(true)}
-            className="px-5 py-2.5 rounded-xl bg-xyon-ink text-white text-sm font-semibold hover:opacity-90"
+            className="px-5 py-2.5 rounded-xl bg-xyon-ink text-xyon-bg text-sm font-semibold hover:opacity-90"
           >
             Browse Courses
           </button>

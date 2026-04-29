@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "./Page.css";
 import logo from "../assets/logo.png";
 
-export default function SignupPage({ onSignupSuccess, onShowLogin }) {
+export default function SignupPage({ onSignupSuccess, onShowLogin, onShowSplash }) {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
@@ -43,7 +43,7 @@ export default function SignupPage({ onSignupSuccess, onShowLogin }) {
     return (
         <div>
             <header className="navbar">
-                <img src={logo} alt="Xyon Logo" className="logo" />
+                <img src={logo} alt="Xyon Logo" className="logo" onClick={onShowSplash} style={{ cursor: onShowSplash ? "pointer" : "default" }} />
             </header>
             <div className="login-page">
                 <div className="login-card">

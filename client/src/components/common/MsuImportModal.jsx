@@ -103,7 +103,7 @@ function SectionCard({ section, inSchedule, onAdd, onRemove }) {
     const hasTime = section.startTime && section.endTime;
     const isOpen  = section.status === "Open";
     return (
-        <div className={["rounded-xl border p-3 mb-2 transition-all", inSchedule ? "border-blue-300 bg-blue-50/60" : "border-xyon-line bg-white/60"].join(" ")}>
+        <div className={["rounded-xl border p-3 mb-2 transition-all", inSchedule ? "border-blue-300 bg-blue-50/60" : "border-xyon-line bg-xyon-pill"].join(" ")}>
             <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -265,7 +265,7 @@ export default function MsuImportModal({ open, onClose, onCreate }) {
                         <h3 className="text-lg font-extrabold">MSU Course Import</h3>
                         <p className="text-sm text-xyon-muted mt-0.5">Search Montclair State courses, build a schedule, then import to your calendar.</p>
                     </div>
-                    <button className="h-9 w-9 rounded-full border border-xyon-line bg-white/60 hover:bg-white grid place-items-center" onClick={onClose}>✕</button>
+                    <button className="h-9 w-9 rounded-full border border-xyon-line bg-xyon-pill hover:bg-white grid place-items-center" onClick={onClose}>✕</button>
                 </div>
 
                 {corsBlocked && (
@@ -281,13 +281,13 @@ export default function MsuImportModal({ open, onClose, onCreate }) {
                     <div className="flex flex-col w-[60%] border-r border-xyon-line overflow-hidden">
                         <div className="px-4 py-3 border-b border-xyon-line shrink-0 space-y-2">
                             <div className="flex gap-2">
-                                <select value={term} onChange={(e) => { setTerm(e.target.value); setSubject(""); setSections([]); }} className="rounded-xl border border-xyon-line bg-white/70 px-3 py-2 text-sm outline-none">
+                                <select value={term} onChange={(e) => { setTerm(e.target.value); setSubject(""); setSections([]); }} className="rounded-xl border border-xyon-line bg-xyon-panel px-3 py-2 text-sm outline-none">
                                     {TERMS.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
                                 </select>
                                 <div className="relative flex-1 flex gap-2">
                                     <div className="relative flex-1">
                                         <input
-                                            className="w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 text-sm outline-none focus:bg-white uppercase placeholder:normal-case"
+                                            className="w-full rounded-xl border border-xyon-line bg-xyon-panel px-3 py-2 text-sm outline-none focus:bg-xyon-panel uppercase placeholder:normal-case"
                                             placeholder={loadingSubjects ? "Loading subjects…" : "Subject code (e.g. CSIT, MATH)"}
                                             value={subjectInput}
                                             onChange={(e) => { setSubjectInput(e.target.value.toUpperCase()); setSubject(""); }}
@@ -295,7 +295,7 @@ export default function MsuImportModal({ open, onClose, onCreate }) {
                                             disabled={loadingSubjects}
                                         />
                                         {suggestions.length > 0 && (
-                                            <div className="absolute left-0 top-full mt-1 w-full bg-white border border-xyon-line rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                                            <div className="absolute left-0 top-full mt-1 w-full bg-xyon-card border border-xyon-line rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
                                                 {suggestions.map((s) => (
                                                     <button key={s.code} className="w-full text-left px-3 py-2 text-sm hover:bg-xyon-pill2" onClick={() => { setSubjectInput(s.code); setSubject(s.code); doSearch(); }}>
                                                         <span className="font-semibold">{s.code}</span>{s.description && <span className="text-xyon-muted ml-2">{s.description}</span>}
@@ -304,13 +304,13 @@ export default function MsuImportModal({ open, onClose, onCreate }) {
                                             </div>
                                         )}
                                     </div>
-                                    <button onClick={doSearch} className="px-4 py-2 rounded-xl bg-xyon-ink text-white text-sm font-semibold hover:opacity-90">Search</button>
+                                    <button onClick={doSearch} className="px-4 py-2 rounded-xl bg-xyon-ink text-xyon-bg text-sm font-semibold hover:opacity-90">Search</button>
                                 </div>
                             </div>
                             {sections.length > 0 && (
                                 <div className="flex items-center gap-2">
-                                    <input className="flex-1 rounded-xl border border-xyon-line bg-white/70 px-3 py-1.5 text-sm outline-none focus:bg-white" placeholder="Filter by title, number, instructor…" value={filterText} onChange={(e) => setFilterText(e.target.value)} />
-                                    <button onClick={() => setFilterOpen((p) => !p)} className={["px-3 py-1.5 rounded-xl border text-sm font-semibold whitespace-nowrap", filterOpen ? "bg-blue-100 border-blue-300 text-blue-700" : "bg-white/60 border-xyon-line hover:bg-white"].join(" ")}>{filterOpen ? "✓ Open only" : "Open only"}</button>
+                                    <input className="flex-1 rounded-xl border border-xyon-line bg-xyon-panel px-3 py-1.5 text-sm outline-none focus:bg-xyon-panel" placeholder="Filter by title, number, instructor…" value={filterText} onChange={(e) => setFilterText(e.target.value)} />
+                                    <button onClick={() => setFilterOpen((p) => !p)} className={["px-3 py-1.5 rounded-xl border text-sm font-semibold whitespace-nowrap", filterOpen ? "bg-blue-100 border-blue-300 text-blue-700" : "bg-xyon-pill border-xyon-line hover:bg-white"].join(" ")}>{filterOpen ? "✓ Open only" : "Open only"}</button>
                                     <span className="text-xs text-xyon-muted shrink-0">{filteredSections.length} section{filteredSections.length !== 1 ? "s" : ""}</span>
                                 </div>
                             )}
@@ -338,7 +338,7 @@ export default function MsuImportModal({ open, onClose, onCreate }) {
                                 : scheduleList.map((sec) => {
                                     const occ = generateOccurrences(sec, term);
                                     return (
-                                        <div key={sec.crn} className="rounded-xl border border-xyon-line bg-white/60 p-3 mb-2">
+                                        <div key={sec.crn} className="rounded-xl border border-xyon-line bg-xyon-pill p-3 mb-2">
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="font-bold text-sm">{sec.subject} {sec.courseNumber} — {sec.section}</div>
@@ -363,10 +363,10 @@ export default function MsuImportModal({ open, onClose, onCreate }) {
                                     This will add <strong>{scheduleList.reduce((sum, sec) => { const o = generateOccurrences(sec, term); return sum + (o.length || 1); }, 0)}</strong> events for {termLabel}.
                                 </div>
                             )}
-                            <button onClick={handleImport} disabled={!scheduleList.length || importing} className={["w-full py-2.5 rounded-xl text-sm font-semibold", scheduleList.length && !importing ? "bg-xyon-ink text-white hover:opacity-90" : "bg-xyon-ink/30 text-white cursor-not-allowed"].join(" ")}>
+                            <button onClick={handleImport} disabled={!scheduleList.length || importing} className={["w-full py-2.5 rounded-xl text-sm font-semibold", scheduleList.length && !importing ? "bg-xyon-ink text-xyon-bg hover:opacity-90" : "bg-xyon-ink/30 text-xyon-bg cursor-not-allowed"].join(" ")}>
                                 {importing ? "Importing…" : scheduleList.length === 0 ? "Add courses to import" : `Import ${scheduleList.length} course${scheduleList.length !== 1 ? "s" : ""} →`}
                             </button>
-                            <button onClick={onClose} className="w-full mt-2 py-2 rounded-xl border border-xyon-line bg-white/60 hover:bg-white text-sm font-semibold">Cancel</button>
+                            <button onClick={onClose} className="w-full mt-2 py-2 rounded-xl border border-xyon-line bg-xyon-pill hover:bg-white text-sm font-semibold">Cancel</button>
                         </div>
                     </div>
                 </div>

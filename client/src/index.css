@@ -2,7 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { --xyon-accent: #E6ABAB; }
+/* ── Light theme (default) ─────────────────────────────────────────────────── */
+:root {
+  --xyon-accent:  #E6ABAB;
+  --xyon-bg:      #f3f1ed;
+  --xyon-card:    #f7f5f1;
+  --xyon-panel:   #fbfaf7;
+  --xyon-past:    #eeecea;
+  --xyon-line:    #e5e1d9;
+  --xyon-ink-rgb: 31 31 31;
+  --xyon-muted:   #6b6b6b;
+  --xyon-pill:    #e8e2d8;
+  --xyon-pill2:   #efe9df;
+}
+
+/* ── Dark theme ────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --xyon-bg:      #1a1917;
+  --xyon-card:    #222120;
+  --xyon-panel:   #252320;
+  --xyon-past:    #1e1d1b;
+  --xyon-line:    #333230;
+  --xyon-ink-rgb: 240 237 232;
+  --xyon-muted:   #9b9892;
+  --xyon-pill:    #2e2c28;
+  --xyon-pill2:   #353330;
+}
 
 html, body, #root { height: 100%; }
-body { background: #f3f1ed; }
+body { background: var(--xyon-bg); }
+
+/* ── Logo: invert to white in dark mode ────────────────────────────────────── */
+[data-theme="dark"] .xyon-logo,
+[data-theme="dark"] .logo {
+  filter: brightness(0) invert(1);
+}
+
+/* ── FullCalendar dark mode overrides ──────────────────────────────────────── */
+[data-theme="dark"] .fc-theme-standard td,
+[data-theme="dark"] .fc-theme-standard th {
+  border-color: #4a4845;
+}
+[data-theme="dark"] .fc-scrollgrid {
+  border-color: #4a4845 !important;
+}
+[data-theme="dark"] .fc-timegrid-slot {
+  border-color: #3e3c39 !important;
+}
+[data-theme="dark"] .fc-col-header-cell,
+[data-theme="dark"] .fc-col-header-cell-cushion {
+  background: var(--xyon-card);
+  color: rgb(var(--xyon-ink-rgb));
+}
+[data-theme="dark"] .fc-timegrid-slot,
+[data-theme="dark"] .fc-timegrid-slot-lane,
+[data-theme="dark"] .fc-timegrid-axis {
+  background: var(--xyon-panel);
+  color: var(--xyon-muted);
+}
+[data-theme="dark"] .fc-timegrid-axis-cushion {
+  color: var(--xyon-muted);
+}
+[data-theme="dark"] .fc-daygrid-day {
+  background: var(--xyon-panel);
+}
+[data-theme="dark"] .fc-daygrid-day-number {
+  color: rgb(var(--xyon-ink-rgb));
+}
+[data-theme="dark"] .fc-day-today {
+  background: var(--xyon-pill2) !important;
+}
+[data-theme="dark"] .fc-day-other {
+  background: var(--xyon-past) !important;
+}
+[data-theme="dark"] .fc-timegrid-now-indicator-line {
+  border-color: var(--xyon-accent);
+}
+[data-theme="dark"] .fc-event-main {
+  color: rgba(31, 31, 31, 0.9);
+}
+
+/* ── To Do note cards: always dark text since bg is always a light pastel ── */
+[data-theme="dark"] .todo-note-surface,
+[data-theme="dark"] .todo-note-surface input,
+[data-theme="dark"] .todo-note-surface textarea,
+[data-theme="dark"] .todo-note-surface p,
+[data-theme="dark"] .todo-note-surface span {
+  color: rgba(31, 31, 31, 0.9) !important;
+}
+[data-theme="dark"] .todo-note-surface .todo-muted {
+  color: rgba(31, 31, 31, 0.55) !important;
+}

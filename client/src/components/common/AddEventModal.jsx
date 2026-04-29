@@ -3,16 +3,17 @@ import React, { useEffect, useMemo, useState } from "react";
 const pad2 = (n) => String(n).padStart(2, "0");
 
 function toLocalDate(date) {
-  const y = date.getFullYear();
-  const m = pad2(date.getMonth() + 1);
-  const d = pad2(date.getDate());
-  return `${y}-${m}-${d}`;
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
 function combineDateTime(dateStr, timeStr) {
-  // dateStr: YYYY-MM-DD, timeStr: HH:MM
   return `${dateStr}T${timeStr}:00`;
 }
+
+const inputCls =
+  "mt-1 w-full rounded-xl border border-xyon-line bg-xyon-panel px-3 py-2 outline-none focus:bg-xyon-panel text-sm";
+
+const TYPES = ["Class", "Assignment", "Exam", "Extracurricular", "Personal", "Other"];
 
 export default function AddEventModal({
   open,
@@ -21,40 +22,36 @@ export default function AddEventModal({
   defaultDateStr,
   defaultStartTime,
   defaultEndTime,
-  defaultDueTime
+  defaultDueTime,
 }) {
-    
-  const [type, setType] = useState("Class"); // "Class" | "Assignment"
-  const [title, setTitle] = useState("");
-  const [course, setCourse] = useState("");
-  const [date, setDate] = useState(defaultDateStr || toLocalDate(new Date()));
+  const [type,        setType]        = useState("Class");
+  const [title,       setTitle]       = useState("");
+  const [course,      setCourse]      = useState("");
+  const [location,    setLocation]    = useState("");
+  const [description, setDescription] = useState("");
+  const [date,        setDate]        = useState(defaultDateStr || toLocalDate(new Date()));
+  const [startTime,   setStartTime]   = useState("09:00");
+  const [endTime,     setEndTime]     = useState("10:15");
+  const [dueTime,     setDueTime]     = useState("23:59");
 
-  // Class fields
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("10:15");
-
-  // Assignment fields
-  const [dueTime, setDueTime] = useState("23:59");
   useEffect(() => {
     if (!open) return;
-
     const d = (defaultDateStr || toLocalDate(new Date())).slice(0, 10);
-
     setType("Class");
     setTitle("");
     setCourse("");
+    setLocation("");
+    setDescription("");
     setDate(d);
-
     setStartTime(defaultStartTime || "09:00");
-    setEndTime(defaultEndTime || "10:15");
-    setDueTime(defaultDueTime || "23:59");
-    }, [open, defaultDateStr, defaultStartTime, defaultEndTime, defaultDueTime]);
+    setEndTime(defaultEndTime   || "10:15");
+    setDueTime(defaultDueTime   || "23:59");
+  }, [open, defaultDateStr, defaultStartTime, defaultEndTime, defaultDueTime]);
 
   const canSubmit = useMemo(() => {
-    if (type === "Class") {
-      return course.trim().length > 0 && startTime < endTime;
-    }
-    return title.trim().length > 0;
+    if (type === "Class")      return course.trim().length > 0 && startTime < endTime;
+    if (type === "Assignment") return title.trim().length > 0;
+    return title.trim().length > 0 && startTime < endTime;
   }, [title, course, type, startTime, endTime]);
 
   if (!open) return null;
@@ -63,46 +60,51 @@ export default function AddEventModal({
     if (!canSubmit) return;
 
     if (type === "Class") {
-      onCreate({
-        kind: "Class",
-        title: course.trim(),  // course name is the title for a class
-        course: course.trim(),
-        start: combineDateTime(date, startTime),
-        end: combineDateTime(date, endTime),
-        allDay: false
-      });
+      onCreate({ kind: "Class", title: course.trim(), course: course.trim(),
+        start: combineDateTime(date, startTime), end: combineDateTime(date, endTime), allDay: false });
+    } else if (type === "Assignment") {
+      onCreate({ kind: "Assignment", title: title.trim(), course: course.trim() || null,
+        description: description.trim() || null,
+        start: combineDateTime(date, dueTime), end: null, allDay: false });
+    } else if (type === "Extracurricular") {
+      onCreate({ kind: "Extracurricular", title: title.trim(),
+        location: location.trim() || null, description: description.trim() || null,
+        start: combineDateTime(date, startTime), end: combineDateTime(date, endTime), allDay: false });
     } else {
-      // Assignment: show it as a timed event OR all-day marker.
-      // We'll use timed (due time) so it can appear in day/week views.
-      onCreate({
-        kind: "Assignment",
-        title: title.trim(),
-        course: course.trim(),
-        start: combineDateTime(date, dueTime),
-        end: null,
-        allDay: false
-      });
+      // Exam, Personal, Other
+      onCreate({ kind: type, title: title.trim(),
+        course: type === "Exam" ? (course.trim() || null) : null,
+        description: description.trim() || null,
+        start: combineDateTime(date, startTime), end: combineDateTime(date, endTime), allDay: false });
     }
 
     onClose();
   };
 
+  const showTitle       = type !== "Class";
+  const showCourse      = type === "Class" || type === "Assignment" || type === "Exam";
+  const showLocation    = type === "Extracurricular";
+  const showDescription = type !== "Class";
+
+  const titlePlaceholder =
+    type === "Assignment" ? "e.g., HW 3 Due" :
+    type === "Exam"       ? "e.g., Midterm"   : "e.g., Team meeting";
+
   return (
     <div className="fixed inset-0 z-50">
-      <div
-        className="absolute inset-0 bg-black/30"
-        onClick={onClose}
-      />
-      <div className="absolute left-1/2 top-1/2 w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-xxl bg-xyon-card border border-xyon-line shadow-soft p-6">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute left-1/2 top-1/2 w-[520px] -translate-x-1/2 -translate-y-1/2
+                      rounded-xxl bg-xyon-card border border-xyon-line shadow-soft p-6
+                      overflow-y-auto max-h-[90vh]">
+
+        {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-lg font-extrabold">Add event</h3>
-            <p className="text-sm text-xyon-muted mt-1">
-              Choose a type, then fill in the details.
-            </p>
+            <p className="text-sm text-xyon-muted mt-1">Choose a type, then fill in the details.</p>
           </div>
           <button
-            className="h-9 w-9 rounded-full border border-xyon-line bg-white/60 hover:bg-white"
+            className="h-9 w-9 rounded-full border border-xyon-line bg-xyon-pill hover:bg-xyon-card flex-shrink-0"
             onClick={onClose}
             aria-label="Close"
           >
@@ -110,17 +112,17 @@ export default function AddEventModal({
           </button>
         </div>
 
-        {/* Type toggle */}
-        <div className="mt-4 flex gap-2">
-          {["Class", "Assignment"].map((t) => (
+        {/* Type toggle grid */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {TYPES.map((t) => (
             <button
               key={t}
               onClick={() => setType(t)}
               className={[
-                "px-4 py-2 rounded-xl border text-sm font-semibold",
+                "px-2 py-2 rounded-xl border text-sm font-semibold",
                 type === t
                   ? "bg-xyon-pill2 border-xyon-line"
-                  : "bg-white/50 border-xyon-line hover:bg-white"
+                  : "bg-xyon-pill border-xyon-line hover:bg-xyon-card",
               ].join(" ")}
             >
               {t}
@@ -130,47 +132,90 @@ export default function AddEventModal({
 
         {/* Fields */}
         <div className="mt-4 grid grid-cols-2 gap-3">
-          {type === "Assignment" && (
+          {showTitle && (
             <div className="col-span-2">
               <label className="text-xs text-xyon-muted">Title</label>
               <input
-                className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
+                className={inputCls}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., HW 3 Due"
+                placeholder={titlePlaceholder}
               />
             </div>
           )}
 
-          <div className="col-span-2">
-            <label className="text-xs text-xyon-muted">
-              {type === "Class" ? "Course" : "Course (optional)"}
-            </label>
-            <input
-              className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
-              value={course}
-              onChange={(e) => setCourse(e.target.value)}
-              placeholder="e.g., CSIT 415"
-            />
-          </div>
+          {showCourse && (
+            <div className="col-span-2">
+              <label className="text-xs text-xyon-muted">
+                {type === "Class" ? "Course" : "Course (optional)"}
+              </label>
+              <input
+                className={inputCls}
+                value={course}
+                onChange={(e) => setCourse(e.target.value)}
+                placeholder="e.g., CSIT 415"
+              />
+            </div>
+          )}
+
+          {showLocation && (
+            <div className="col-span-2">
+              <label className="text-xs text-xyon-muted">
+                Location <span className="text-xyon-muted/60">(optional)</span>
+              </label>
+              <input
+                className={inputCls}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g., Gymnasium"
+              />
+            </div>
+          )}
+
+          {showDescription && (
+            <div className="col-span-2">
+              <label className="text-xs text-xyon-muted">
+                Description <span className="text-xyon-muted/60">(optional)</span>
+              </label>
+              <textarea
+                className={`${inputCls} resize-none`}
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={
+                  type === "Assignment" ? "e.g., Chapter 5 problems 1–10" : "e.g., Additional notes"
+                }
+              />
+            </div>
+          )}
 
           <div>
             <label className="text-xs text-xyon-muted">Date</label>
             <input
               type="date"
-              className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
+              className={inputCls}
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
 
-          {type === "Class" ? (
+          {type === "Assignment" ? (
+            <div>
+              <label className="text-xs text-xyon-muted">Due time</label>
+              <input
+                type="time"
+                className={inputCls}
+                value={dueTime}
+                onChange={(e) => setDueTime(e.target.value)}
+              />
+            </div>
+          ) : (
             <>
               <div>
                 <label className="text-xs text-xyon-muted">Start time</label>
                 <input
                   type="time"
-                  className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
+                  className={inputCls}
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                 />
@@ -179,36 +224,28 @@ export default function AddEventModal({
                 <label className="text-xs text-xyon-muted">End time</label>
                 <input
                   type="time"
-                  className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
+                  className={inputCls}
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                 />
               </div>
             </>
-          ) : (
-            <div>
-              <label className="text-xs text-xyon-muted">Due time</label>
-              <input
-                type="time"
-                className="mt-1 w-full rounded-xl border border-xyon-line bg-white/70 px-3 py-2 outline-none focus:bg-white"
-                value={dueTime}
-                onChange={(e) => setDueTime(e.target.value)}
-              />
-            </div>
           )}
         </div>
 
         {!canSubmit && (
-          <div className="mt-3 text-sm text-red-600">
+          <p className="mt-3 text-sm text-red-600">
             {type === "Class"
               ? "Course is required and start time must be before end time."
-              : "Title is required."}
-          </div>
+              : type === "Assignment"
+              ? "Title is required."
+              : "Title is required and start time must be before end time."}
+          </p>
         )}
 
         <div className="mt-6 flex justify-end gap-2">
           <button
-            className="px-4 py-2 rounded-xl border border-xyon-line bg-white/60 hover:bg-white text-sm font-semibold"
+            className="px-4 py-2 rounded-xl border border-xyon-line bg-xyon-pill hover:bg-xyon-card text-sm font-semibold"
             onClick={onClose}
           >
             Cancel
@@ -217,8 +254,8 @@ export default function AddEventModal({
             className={[
               "px-4 py-2 rounded-xl text-sm font-semibold",
               canSubmit
-                ? "bg-xyon-ink text-white hover:opacity-90"
-                : "bg-xyon-ink/30 text-white cursor-not-allowed"
+                ? "bg-xyon-ink text-xyon-bg hover:opacity-90"
+                : "bg-xyon-ink/30 text-xyon-bg cursor-not-allowed",
             ].join(" ")}
             onClick={submit}
             disabled={!canSubmit}

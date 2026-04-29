@@ -7,16 +7,12 @@ const router = express.Router();
 // Because of that split, we look up a user's events through the calendars table.
 
 // The UI sends "Class" / "Assignment", but the database stores lowercase enum values.
+const VALID_EVENT_TYPES = ["class","assignment","exam","club","personal","work","other"];
+
 function normalizeEventType(kind) {
-    if (kind === "Assignment" || kind === "assignment") {
-        return "assignment";
-    }
-
-    if (kind === "Class" || kind === "class") {
-        return "class";
-    }
-
-    return "personal";
+    const k = (kind || "").toLowerCase();
+    if (k === "extracurricular") return "club";
+    return VALID_EVENT_TYPES.includes(k) ? k : "personal";
 }
 
 // FullCalendar gives us ISO-style strings. MySQL DATETIME wants "YYYY-MM-DD HH:MM:SS".
@@ -93,7 +89,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
     try {
-        const { user_id, title, course, kind, start, end, allDay } = req.body;
+        const { user_id, title, course, kind, start, end, allDay, description, location } = req.body;
         const userId = Number(user_id);
         const startTime = normalizeDateTime(start);
         const endTime = normalizeDateTime(end || start);
@@ -118,11 +114,13 @@ router.post("/", async (req, res) => {
         const [result] = await eventDb.query(
             `INSERT INTO events
                 (calendar_id, title, course, description, location, start_time, end_time, all_day, event_type)
-             VALUES (?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 calendarId,
                 title,
                 course || null,
+                description || null,
+                location || null,
                 startTime,
                 endTime,
                 allDay ? 1 : 0,
@@ -144,7 +142,7 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
     try {
         const eventId = Number(req.params.id);
-        const { start, end, allDay, title, course, kind } = req.body;
+        const { start, end, allDay, title, course, kind, description, location } = req.body;
 
         if (!Number.isInteger(eventId) || eventId <= 0) {
             return res.status(400).json({ ok: false, error: "Valid event_id is required." });
@@ -162,9 +160,11 @@ router.put("/:id", async (req, res) => {
         const fields = ["start_time = ?", "end_time = ?", "all_day = ?"];
         const params = [startTime, endTime, allDay ? 1 : 0];
 
-        if (title !== undefined) { fields.push("title = ?");      params.push(title || ""); }
-        if (course !== undefined) { fields.push("course = ?");     params.push(course || null); }
-        if (kind   !== undefined) { fields.push("event_type = ?"); params.push(normalizeEventType(kind)); }
+        if (title       !== undefined) { fields.push("title = ?");       params.push(title || ""); }
+        if (course      !== undefined) { fields.push("course = ?");      params.push(course || null); }
+        if (kind        !== undefined) { fields.push("event_type = ?");  params.push(normalizeEventType(kind)); }
+        if (description !== undefined) { fields.push("description = ?"); params.push(description || null); }
+        if (location    !== undefined) { fields.push("location = ?");    params.push(location    || null); }
 
         params.push(eventId);
 

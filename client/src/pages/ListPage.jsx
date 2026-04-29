@@ -37,7 +37,7 @@ function timeLabel(ev) {
   const start = parseDate(ev.start_time);
   const end   = parseDate(ev.end_time);
   if (ev.all_day) return "All day";
-  if (ev.event_type === "assignment" || ev.event_type === "exam")
+  if (ev.event_type === "assignment")
     return `Due ${fmtTime(start)}`;
   if (start && end && start.getTime() !== end.getTime())
     return `${fmtTime(start)} – ${fmtTime(end)}`;
@@ -103,6 +103,8 @@ function toFCEvent(ev) {
       kind:          ev.event_type,
       course:        ev.course,
       originalTitle: ev.title,
+      description:   ev.description || null,
+      location:      ev.location    || null,
     },
   };
 }
@@ -120,7 +122,7 @@ export default function ListPage({ onLogout, user, onNavigate }) {
   const [events,    setEvents]    = useState([]);
   const [editEvent, setEditEvent] = useState(null);
   const [showAdd,   setShowAdd]   = useState(false);
-  const [tab,       setTab]       = useState("due"); // "due" | "schedule"
+  const [tab,       setTab]       = useState(() => localStorage.getItem("xyon-default-list-tab") || "due");
 
   const DUE_TYPES      = ["assignment", "exam"];
   const SCHEDULE_TYPES = ["class", "personal", "work", "club", "other"];
@@ -198,12 +200,12 @@ export default function ListPage({ onLogout, user, onNavigate }) {
     } catch { alert("Failed to save."); }
   };
 
-  const onEdit = async ({ id, kind, title, course, start, end, allDay }) => {
+  const onEdit = async ({ id, kind, title, course, description, location, start, end, allDay }) => {
     try {
       const res  = await fetch(`http://localhost:3001/api/events/${id}`, {
         method:  "PUT",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ title, course, kind, start, end, allDay }),
+        body:    JSON.stringify({ title, course, kind, description, location, start, end, allDay }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) { alert(data.error || "Failed to save."); return; }
@@ -243,7 +245,7 @@ export default function ListPage({ onLogout, user, onNavigate }) {
               onClick={() => setTab("due")}
               className={[
                 "px-4 py-2 transition-colors",
-                tab === "due" ? "bg-xyon-ink text-white" : "text-xyon-muted hover:text-xyon-ink",
+                tab === "due" ? "bg-xyon-ink text-xyon-bg" : "text-xyon-muted hover:text-xyon-ink",
               ].join(" ")}
             >
               Due Dates
@@ -252,7 +254,7 @@ export default function ListPage({ onLogout, user, onNavigate }) {
               onClick={() => setTab("schedule")}
               className={[
                 "px-4 py-2 transition-colors",
-                tab === "schedule" ? "bg-xyon-ink text-white" : "text-xyon-muted hover:text-xyon-ink",
+                tab === "schedule" ? "bg-xyon-ink text-xyon-bg" : "text-xyon-muted hover:text-xyon-ink",
               ].join(" ")}
             >
               Schedule
@@ -264,13 +266,13 @@ export default function ListPage({ onLogout, user, onNavigate }) {
           </div>
           <button
             onClick={scrollToToday}
-            className="h-10 px-4 rounded-xl border border-xyon-line bg-white/60 hover:bg-white text-sm font-semibold"
+            className="h-10 px-4 rounded-xl border border-xyon-line bg-xyon-pill hover:bg-white text-sm font-semibold"
           >
             Today
           </button> */}
           <button
             onClick={() => setShowAdd(true)}
-            className="h-10 px-4 rounded-xl bg-xyon-ink text-white text-sm font-semibold hover:opacity-90 flex items-center gap-1.5"
+            className="h-10 px-4 rounded-xl bg-xyon-ink text-xyon-bg text-sm font-semibold hover:opacity-90 flex items-center gap-1.5"
           >
             <span className="text-base leading-none">+</span> Create New Event
           </button>
@@ -278,7 +280,7 @@ export default function ListPage({ onLogout, user, onNavigate }) {
       </div>
 
       {/* List container */}
-      <div className="mt-5 rounded-xxl bg-[#fbfaf7] border border-xyon-line shadow-soft overflow-auto h-[calc(100%-90px)]">
+      <div className="mt-5 rounded-xxl bg-xyon-panel border border-xyon-line shadow-soft overflow-auto h-[calc(100%-90px)]">
         {grouped.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-xyon-muted">
             <p className="text-sm">
@@ -286,7 +288,7 @@ export default function ListPage({ onLogout, user, onNavigate }) {
             </p>
             <button
               onClick={() => setShowAdd(true)}
-              className="px-4 py-2 rounded-xl bg-xyon-ink text-white text-sm font-semibold hover:opacity-90"
+              className="px-4 py-2 rounded-xl bg-xyon-ink text-xyon-bg text-sm font-semibold hover:opacity-90"
             >
               + Create New Event
             </button>
@@ -299,7 +301,7 @@ export default function ListPage({ onLogout, user, onNavigate }) {
               <div
                 className={[
                   "sticky top-0 z-10 px-6 py-2.5 border-b border-xyon-line flex items-center gap-2.5",
-                  isToday ? "bg-xyon-pill2" : isPast ? "bg-[#eeecea]" : "bg-[#f3f1ed]",
+                  isToday ? "bg-xyon-pill2" : isPast ? "bg-xyon-past" : "bg-xyon-bg",
                 ].join(" ")}
               >
                 {isToday && (
@@ -333,7 +335,7 @@ export default function ListPage({ onLogout, user, onNavigate }) {
                     key={ev.event_id}
                     onClick={() => setEditEvent(toFCEvent(ev))}
                     className={[
-                      "w-full flex items-center gap-4 px-6 py-3 text-left hover:bg-white/70 transition-colors",
+                      "w-full flex items-center gap-4 px-6 py-3 text-left hover:bg-xyon-panel transition-colors",
                       i < dayEvents.length - 1 ? "border-b border-xyon-line/40" : "",
                       isPast ? "opacity-60" : "",
                     ].join(" ")}
@@ -351,12 +353,19 @@ export default function ListPage({ onLogout, user, onNavigate }) {
                       {timeLabel(ev)}
                     </span>
 
-                    {/* Title */}
-                    <span
-                      className="text-sm font-semibold flex-1 truncate"
-                      style={{ color: textColor }}
-                    >
-                      {displayTitle}
+                    {/* Title + description stacked */}
+                    <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      <span
+                        className="text-sm font-semibold truncate"
+                        style={{ color: textColor }}
+                      >
+                        {displayTitle}
+                      </span>
+                      {ev.description && (
+                        <span className="text-xs text-xyon-muted truncate">
+                          {ev.description}
+                        </span>
+                      )}
                     </span>
                   </button>
                 );

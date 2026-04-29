@@ -1,28 +1,37 @@
 
    :root {
     --font-sans: "Poppins", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  
-    /* palette (matched to your dashboard mock) */
-    --bg: #F4F1ED;          /* app background */
-    --surface: #E5DBCD;     /* card/panel background */
-    --surface-2: #F7F8FA;   /* light surface */
-    --text: #51454B;        /* primary text */
-    --muted: #7C7179;       /* muted text */
-    --border: #CACACA;      /* soft borders */
-  
-    --pink: #E8B8BC;        /* primary button */
-    --pink-strong: #E6ABAB; /* hover */
+
+    --bg: #F4F1ED;
+    --surface: #E5DBCD;
+    --surface-2: #F7F8FA;
+    --text: #51454B;
+    --muted: #7C7179;
+    --border: #CACACA;
+
+    --pink: #E8B8BC;
+    --pink-strong: #E6ABAB;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  
+
     --r-sm: 12px;
     --r-md: 16px;
     --r-lg: 22px;
-  
+
     --sp-1: 8px;
     --sp-2: 12px;
     --sp-3: 16px;
     --sp-4: 20px;
     --sp-5: 28px;
+  }
+
+  [data-theme="dark"] {
+    --bg: #1a1917;
+    --surface: #252320;
+    --surface-2: #2a2825;
+    --text: #f0ede8;
+    --muted: #9b9892;
+    --border: #333230;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   }
 
  
@@ -106,7 +115,11 @@
   }
   
   .login-input::placeholder {
-    color: rgba(81, 69, 75, 0.55);
+    color: rgba(81, 69, 75, 0.75);
+  }
+
+  [data-theme="dark"] .login-input::placeholder {
+    color: rgba(240, 237, 232, 0.55);
   }
   
 
