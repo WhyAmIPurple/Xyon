@@ -1,86 +1,72 @@
 const express = require("express");
-const https = require("https");
-const http = require("http");
+const puppeteer = require("puppeteer");
 
 const router = express.Router();
+const BANNER = "https://student-ssb-regis.montclair.edu/StudentRegistrationSsb/ssb";
+const PAGE_SIZE = 500;
 
-const BASE = "https://student-ssb-regis.montclair.edu/StudentRegistrationSsb/ssb";
+let browserInstance = null;
 
-//HTTP/HTTPS fetch, returns parsed JSON or throws.
-function fetchJSON(url, options = {}) {
-    return new Promise((resolve, reject) => {
-        const parsed = new URL(url);
-        const lib = parsed.protocol === "https:" ? https : http;
+async function getBrowser() {
+    if (browserInstance && browserInstance.connected) return browserInstance;
+    browserInstance = await puppeteer.launch({
+        headless: "new",
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    });
+    return browserInstance;
+}
 
-        const reqOptions = {
-            hostname: parsed.hostname,
-            path: parsed.pathname + parsed.search,
-            method: options.method || "GET",
-            headers: {
-                "User-Agent": "Mozilla/5.0 (Xyon-App/1.0)",
-                "Accept": "application/json, */*",
-                "Referer": BASE + "/term/termSelection?mode=search",
-                ...(options.headers || {})
-            }
-        };
+async function withBannerSession(term, apiFn) {
+    const browser = await getBrowser();
+    const page = await browser.newPage();
 
-        const req = lib.request(reqOptions, (res) => {
-            let data = "";
-            res.on("data", (chunk) => (data += chunk));
-            res.on("end", () => {
-                // Bubble the Set-Cookie header up so callers can thread it through
-                const cookies = res.headers["set-cookie"];
-                try {
-                    resolve({ body: JSON.parse(data), cookies, status: res.statusCode });
-                } catch {
-                    resolve({ body: data, cookies, status: res.statusCode });
-                }
-            });
+    try {
+        await page.setUserAgent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        );
+
+        //Block clatter to speed up
+        await page.setRequestInterception(true);
+        page.on("request", (req) => {
+            if (["image", "font", "stylesheet"].includes(req.resourceType())) req.abort();
+            else req.continue();
         });
 
-        req.on("error", reject);
+        console.log("  Navigating to termSelection…");
+        const r1 = await page.goto(`${BANNER}/term/termSelection?mode=search`, {
+            waitUntil: "networkidle2", timeout: 30000,
+        });
+        console.log("  Status:", r1.status());
 
-        if (options.body) {
-            req.write(options.body);
-        }
+        //POST term selection from inside the page
+        console.log("  Posting term", term);
+        const postResult = await page.evaluate(async (base, t) => {
+            const r = await fetch(`${base}/term/search?mode=search`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `term=${t}&studyPath=&studyPathText=&startDatepicker=&endDatepicker=`,
+            });
+            return { status: r.status, body: await r.text() };
+        }, BANNER, term);
+        console.log("  Result:", postResult.status, postResult.body.slice(0, 100));
 
-        req.end();
-    });
+        //Navigate to classSearch
+        console.log("Navigating to classSearch…");
+        const r3 = await page.goto(`${BANNER}/classSearch/classSearch`, {
+            waitUntil: "networkidle2", timeout: 30000,
+        });
+        console.log("Status:", r3.status());
+
+        //Run the api function
+        return await apiFn(page);
+
+    } finally {
+        await page.close();
+    }
 }
 
-/**
- * Build a Banner session for a given term.
- * Returns the cookie string to pass to subsequent requests.
- */
-async function buildSession(term) {
-    // Step 1: GET the term selector to get initial cookies
-    const init = await fetchJSON(`${BASE}/term/termSelection?mode=search`);
-    const initCookies = (init.cookies || []).join("; ");
-
-    // Step 2: POST the term selection
-    const body = `term=${term}&studyPath=&studyPathText=&startDatepicker=&endDatepicker=`;
-    const post = await fetchJSON(`${BASE}/term/search?mode=search`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Cookie": initCookies
-        },
-        body
-    });
-
-    const postCookies = (post.cookies || []).join("; ");
-    // Merge cookies
-    return [initCookies, postCookies].filter(Boolean).join("; ");
-}
-
-//routes 
-
-/**
- * GET /api/msu/terms
- * Returns a hard-coded list of known MSU term codes + labels.
- * Banner doesn't expose a clean public "list terms" endpoint,
- * so we maintain a curated list of upcoming terms.
- */
+// GET /api/msu/terms
 router.get("/terms", (_req, res) => {
     res.json({
         ok: true,
@@ -89,130 +75,126 @@ router.get("/terms", (_req, res) => {
             { code: "202605", label: "Summer 2026" },
             { code: "202601", label: "Spring 2026" },
             { code: "202512", label: "Winter 2026" },
-            { code: "202509", label: "Fall 2025" }
-        ]
+            { code: "202509", label: "Fall 2025" },
+        ],
     });
 });
 
-/**
- * GET /api/msu/subjects?term=202609
- * Fetches subjects from Banner's autocomplete endpoint.
- */
+// GET /api/msu/subjects?term=202609
 router.get("/subjects", async (req, res) => {
     const { term } = req.query;
-    if (!term) {
-        return res.status(400).json({ ok: false, error: "term is required" });
-    }
+    if (!term) return res.status(400).json({ ok: false, error: "term is required" });
+    console.log(`\n GET /subjects term=${term}`);
 
     try {
-        const cookie = await buildSession(term);
+        const subjects = await withBannerSession(term, async (page) => {
+            const url = `${BANNER}/classSearch/get_subject?searchTerm=&term=${term}&offset=1&max=500&uniqueSessionId=xyon`;
+            console.log("Fetching subjects URL:", url);
 
-        const result = await fetchJSON(
-            `${BASE}/classSearch/get_subject?searchTerm=&term=${term}&offset=1&max=300&uniqueSessionId=xyon`,
-            { headers: { Cookie: cookie } }
-        );
+            const result = await page.evaluate(async (u) => {
+                const r = await fetch(u, {
+                    credentials: "include",
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                });
+                const text = await r.text();
+                return { status: r.status, body: text };
+            }, url);
 
-        if (!Array.isArray(result.body)) {
-            return res.json({ ok: true, subjects: [] });
-        }
+            console.log("Subjects fetch status:", result.status);
+            console.log("Subjects body snippet:", result.body.slice(0, 300));
 
-        const subjects = result.body.map((s) => ({
-            code: s.code,
-            description: s.description
-        }));
-
-        return res.json({ ok: true, subjects });
-    } catch (err) {
-        console.error("MSU SUBJECTS ERROR:", err);
-        return res.status(502).json({ ok: false, error: "Failed to fetch subjects from MSU." });
-    }
-});
-
-/**
- * GET /api/msu/courses?term=202609&subject=CSIT
- * Fetches all sections for a subject from Banner's search results API.
- */
-router.get("/courses", async (req, res) => {
-    const { term, subject } = req.query;
-
-    if (!term || !subject) {
-        return res.status(400).json({ ok: false, error: "term and subject are required" });
-    }
-
-    try {
-        const cookie = await buildSession(term);
-
-        const PAGE_SIZE = 500;
-        let offset = 0;
-        let allSections = [];
-        let total = null;
-
-        do {
-            const url =
-                `${BASE}/searchResults/searchResults` +
-                `?txt_term=${term}&txt_subject=${encodeURIComponent(subject)}` +
-                `&pageOffset=${offset}&pageMaxSize=${PAGE_SIZE}` +
-                `&sortColumn=subjectDescription&sortDirection=asc`;
-
-            const result = await fetchJSON(url, { headers: { Cookie: cookie } });
-
-            if (!result.body || !Array.isArray(result.body.data)) break;
-
-            if (total === null) total = result.body.totalCount || 0;
-
-            allSections = allSections.concat(result.body.data);
-            offset += PAGE_SIZE;
-        } while (offset < total);
-
-        const sections = allSections.map((sec) => {
-            const meetings = sec.meetingsFaculty || [];
-            const meeting = meetings[0]?.meetingTime || {};
-            const faculty = sec.faculty || [];
-
-            const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
-                .filter((d) => meeting[d])
-                .map((d) => d[0].toUpperCase()); // M T W R F S U
-
-            // Map Thursday to "R" for standard academic notation
-            const dayStr = days
-                .map((d) => d === "T" && meeting.thursday ? "R" : d)
-                .join("");
-
-            // Build a day string using the raw booleans
-            const dayLetters = [];
-            if (meeting.monday) dayLetters.push("M");
-            if (meeting.tuesday) dayLetters.push("T");
-            if (meeting.wednesday) dayLetters.push("W");
-            if (meeting.thursday) dayLetters.push("R");
-            if (meeting.friday) dayLetters.push("F");
-            if (meeting.saturday) dayLetters.push("S");
-            if (meeting.sunday) dayLetters.push("U");
-
-            return {
-                crn: sec.courseReferenceNumber,
-                subject: sec.subject,
-                courseNumber: sec.courseNumber,
-                section: sec.sequenceNumber,
-                title: sec.courseTitle,
-                credits: sec.creditHours,
-                instructor: faculty[0]?.displayName || "TBA",
-                days: dayLetters.join(""),
-                startTime: meeting.beginTime || "", // "0800"
-                endTime: meeting.endTime || "", // "0915"
-                building: meeting.building || "",
-                room:  meeting.room || "",
-                scheduleType: sec.scheduleTypeDescription || "",
-                seatsTotal: sec.maximumEnrollment,
-                seatsOpen: sec.seatsAvailable,
-                status: sec.openSection ? "Open" : "Closed"
-            };
+            try {
+                const data = JSON.parse(result.body);
+                if (!Array.isArray(data)) { console.log("Not an array:", typeof data); return []; }
+                return data.map((s) => ({ code: s.code, description: s.description }));
+            } catch (e) {
+                console.log("JSON parse failed:", e.message);
+                return [];
+            }
         });
 
-        return res.json({ ok: true, sections });
+        console.log(`  Returning ${subjects.length} subjects`);
+        return res.json({ ok: true, subjects });
     } catch (err) {
-        console.error("MSU COURSES ERROR:", err);
-        return res.status(502).json({ ok: false, error: "Failed to fetch courses from MSU." });
+        console.error("SUBJECTS ERROR:", err.message);
+        return res.status(502).json({ ok: false, error: err.message });
     }
 });
+
+// GET /api/msu/courses?term=202609&subject=CSIT
+router.get("/courses", async (req, res) => {
+    const { term, subject } = req.query;
+    if (!term || !subject) return res.status(400).json({ ok: false, error: "term and subject are required" });
+    console.log(`\n GET /courses term=${term} subject=${subject}`);
+
+    try {
+        const sections = await withBannerSession(term, async (page) => {
+            const url = `${BANNER}/searchResults/searchResults?txt_term=${term}&txt_subject=${subject}&pageOffset=0&pageMaxSize=${PAGE_SIZE}&sortColumn=subjectDescription&sortDirection=asc&uniqueSessionId=xyon`;
+            console.log("Fetching courses URL:", url);
+
+            const result = await page.evaluate(async (u) => {
+                const r = await fetch(u, {
+                    credentials: "include",
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                });
+                const text = await r.text();
+                return { status: r.status, body: text };
+            }, url);
+
+            console.log("Courses fetch status:", result.status);
+            console.log("Courses body snippet:", result.body.slice(0, 500));
+
+            try {
+                const data = JSON.parse(result.body);
+                console.log("TotalCount:", data.totalCount, "| data length:", Array.isArray(data.data) ? data.data.length : "N/A");
+
+                if (!data || !Array.isArray(data.data)) return [];
+
+                return data.data.map((sec) => {
+                    const meeting = sec.meetingsFaculty?.[0]?.meetingTime || {};
+                    const faculty = sec.faculty || [];
+                    const days = [];
+                    if (meeting.monday) days.push("M");
+                    if (meeting.tuesday) days.push("T");
+                    if (meeting.wednesday) days.push("W");
+                    if (meeting.thursday) days.push("R");
+                    if (meeting.friday) days.push("F");
+                    if (meeting.saturday) days.push("S");
+                    if (meeting.sunday) days.push("U");
+                    return {
+                        crn: sec.courseReferenceNumber,
+                        subject: sec.subject,
+                        courseNumber: sec.courseNumber,
+                        section: sec.sequenceNumber,
+                        title: sec.courseTitle,
+                        credits: sec.creditHours,
+                        instructor: faculty[0]?.displayName || "TBA",
+                        days: days.join(""),
+                        startTime: meeting.beginTime || "",
+                        endTime: meeting.endTime || "",
+                        building: meeting.building || "",
+                        room: meeting.room || "",
+                        scheduleType: sec.scheduleTypeDescription || "",
+                        seatsTotal: sec.maximumEnrollment,
+                        seatsOpen: sec.seatsAvailable,
+                        status: sec.openSection ? "Open" : "Closed",
+                    };
+                });
+            } catch (err) {
+                console.log("JSON parse failed:", err.message);
+                return [];
+            }
+        });
+
+        console.log(`Returning ${sections.length} sections`);
+        return res.json({ ok: true, sections });
+    } catch (err) {
+        console.error(" COURSES ERROR:", err.message);
+        return res.status(502).json({ ok: false, error: err.message });
+    }
+});
+
+process.on("SIGINT", async () => { if (browserInstance) await browserInstance.close(); process.exit(); });
+process.on("SIGTERM", async () => { if (browserInstance) await browserInstance.close(); process.exit(); });
 
 module.exports = router;

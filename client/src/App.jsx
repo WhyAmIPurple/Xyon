@@ -4,7 +4,7 @@ import SignupPage from "./view/SignupPage";
 import CalendarPage from "./pages/CalendarPage";
 
 export default function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false); //make this true to disable
     const [showSignup, setShowSignup] = useState(false);
     const [user, setUser] = useState(null);
 
@@ -13,7 +13,7 @@ export default function App() {
         const savedUser = localStorage.getItem("user");
 
         // Restore the saved user so the dashboard can show the real account name.
-        setIsAuthenticated(!!token);
+        setIsAuthenticated(!!token); //make this true to disable
         setUser(savedUser ? JSON.parse(savedUser) : null);
     }, []);
 
