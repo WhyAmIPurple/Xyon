@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./Page.css";
+import "./Page-Login-Signup.css";
 import logo from "../assets/logo.png";
 
 export default function LoginPage({ onLoginSuccess, onShowSignup }) {
@@ -33,7 +33,7 @@ async function handleSubmit(e) {
         if (onLoginSuccess) onLoginSuccess();
 
     } catch (error){
-        console.error( error);
+        console.error(error);
         setMessage("An error occurred during login. Please try again later.");
       }
     }

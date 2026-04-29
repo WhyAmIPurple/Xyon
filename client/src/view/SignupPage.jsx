@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./Page.css";
+import "./Page-Login-Signup.css";
 import logo from "../assets/logo.png";
 
 export default function SignupPage({ onSignupSuccess, onShowLogin }) {

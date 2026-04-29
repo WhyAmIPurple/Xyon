@@ -1,5 +1,5 @@
 USE xyon_user_db; 
--- creating user table to stroe login and profile information.
+-- creating user table to store ogin and profile information.
 CREATE TABLE users (
   user_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
   first_name     VARCHAR(50) NOT NULL,
