@@ -5,6 +5,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import AppShell from "../components/layout/AppShell";
 import AddEventModal from "../components/common/AddEventModal";
+import MsuImportModal from "../components/common/MsuImportModal";
 
 const seed = [
   {
@@ -41,6 +42,7 @@ export default function CalendarPage({ onLogout, user }) {
 
   const [events, setEvents] = useState(seed);
   const [showAdd, setShowAdd] = useState(false);
+  const [showMsuImport, setShowMsuImport] = useState(false);
 
   const [defaultDateStr, setDefaultDateStr] = useState("2026-03-01");
   const [defaultStartTime, setDefaultStartTime] = useState("09:00");
@@ -252,7 +254,15 @@ export default function CalendarPage({ onLogout, user }) {
           </button>
         </div>
 
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          {/* MSU Import button */}
+          <button
+            className="h-10 px-4 rounded-xl border border-xyon-line bg-white/60 hover:bg-white text-sm font-semibold flex items-center gap-2"
+            onClick={() => setShowMsuImport(true)}
+          >
+            🎓 Import MSU Courses
+          </button>
+
           <div className="flex rounded-xl overflow-hidden border border-xyon-line shadow-sm">
             <button
               className="h-10 px-4 text-sm font-semibold"
@@ -345,6 +355,12 @@ export default function CalendarPage({ onLogout, user }) {
         defaultStartTime={defaultStartTime}
         defaultEndTime={defaultEndTime}
         defaultDueTime={defaultDueTime}
+      />
+
+      <MsuImportModal
+        open = {showMsuImport}
+        onClose ={() => setShowMsuImport(false)}
+        onCreate ={onCreate}
       />
     </AppShell>
   );
