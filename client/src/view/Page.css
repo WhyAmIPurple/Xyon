@@ -136,7 +136,7 @@
     border-radius: var(--r-md);
     padding: 12px 14px;
     background: var(--pink);
-    color: var(--text);
+    color: #3d2b30;
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;

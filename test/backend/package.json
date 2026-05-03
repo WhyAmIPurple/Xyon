@@ -1,0 +1,22 @@
+{
+  "name": "xyon-backend-tests",
+  "version": "1.0.0",
+  "description": "Backend API integration test suite for Xyon",
+  "scripts": {
+    "test": "jest --verbose --forceExit --runInBand"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 15000
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.1",
+    "mysql2": "^3.22.3"
+  }
+}

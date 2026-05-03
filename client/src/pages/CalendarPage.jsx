@@ -82,7 +82,8 @@ export default function CalendarPage({ onLogout, user, onNavigate, targetDate })
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return;
     const u = JSON.parse(storedUser);
-    fetch(`http://localhost:3001/api/events?user_id=${u.user_id}`)
+    const controller = new AbortController();
+    fetch(`http://localhost:3001/api/events?user_id=${u.user_id}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (!data.ok) return;
@@ -107,7 +108,8 @@ export default function CalendarPage({ onLogout, user, onNavigate, targetDate })
         });
         setEvents(loaded);
       })
-      .catch(console.error);
+      .catch((err) => { if (err.name !== "AbortError") console.error(err); });
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -394,6 +396,7 @@ export default function CalendarPage({ onLogout, user, onNavigate, targetDate })
           slotMaxTime="24:00:00"
           scrollTime="00:00:00"
           slotDuration="00:30:00"
+          defaultTimedEventDuration="00:00:30"
 
           datesSet={updateHeaderFromCalendar} // keep outer header synced
 

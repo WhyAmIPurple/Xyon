@@ -33,6 +33,7 @@ export default function AddEventModal({
   const [startTime,   setStartTime]   = useState("09:00");
   const [endTime,     setEndTime]     = useState("10:15");
   const [dueTime,     setDueTime]     = useState("23:59");
+  const [submitting,  setSubmitting]  = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -46,6 +47,7 @@ export default function AddEventModal({
     setStartTime(defaultStartTime || "09:00");
     setEndTime(defaultEndTime   || "10:15");
     setDueTime(defaultDueTime   || "23:59");
+    setSubmitting(false);
   }, [open, defaultDateStr, defaultStartTime, defaultEndTime, defaultDueTime]);
 
   const canSubmit = useMemo(() => {
@@ -57,7 +59,8 @@ export default function AddEventModal({
   if (!open) return null;
 
   const submit = () => {
-    if (!canSubmit) return;
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
 
     if (type === "Class") {
       onCreate({ kind: "Class", title: course.trim(), course: course.trim(),
@@ -253,14 +256,14 @@ export default function AddEventModal({
           <button
             className={[
               "px-4 py-2 rounded-xl text-sm font-semibold",
-              canSubmit
+              canSubmit && !submitting
                 ? "bg-xyon-ink text-xyon-bg hover:opacity-90"
                 : "bg-xyon-ink/30 text-xyon-bg cursor-not-allowed",
             ].join(" ")}
             onClick={submit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || submitting}
           >
-            Add
+            {submitting ? "Adding…" : "Add"}
           </button>
         </div>
       </div>

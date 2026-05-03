@@ -1,0 +1,95 @@
+
+> xyon-backend-tests@1.0.0 test
+> jest --verbose --forceExit --runInBand
+
+  console.log
+    ◇ injected env (6) from ../../server/src/.env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+  console.log
+    LOGIN ATTEMPT: test_auth_1777763526250@xyon-test.local
+
+      at log (../../server/src/routes/authorization.js:101:13)
+
+  console.log
+    ROWS FOUND: 1
+
+      at log (../../server/src/routes/authorization.js:111:13)
+
+  console.log
+    USER ROLE: student
+
+      at log (../../server/src/routes/authorization.js:118:13)
+
+  console.log
+    PASSWORD MATCH: true
+
+      at log (../../server/src/routes/authorization.js:121:13)
+
+  console.log
+    LOGIN ATTEMPT: test_auth_1777763526250@xyon-test.local
+
+      at log (../../server/src/routes/authorization.js:101:13)
+
+  console.log
+    ROWS FOUND: 1
+
+      at log (../../server/src/routes/authorization.js:111:13)
+
+  console.log
+    USER ROLE: student
+
+      at log (../../server/src/routes/authorization.js:118:13)
+
+  console.log
+    PASSWORD MATCH: false
+
+      at log (../../server/src/routes/authorization.js:121:13)
+
+  console.log
+    LOGIN ATTEMPT: nobody@xyon-test.local
+
+      at log (../../server/src/routes/authorization.js:101:13)
+
+  console.log
+    ROWS FOUND: 0
+
+      at log (../../server/src/routes/authorization.js:111:13)
+
+  console.log
+    LOGIN ATTEMPT: undefined
+
+      at log (../../server/src/routes/authorization.js:101:13)
+
+  console.log
+    LOGIN ATTEMPT: test_auth_1777763526250@xyon-test.local
+
+      at log (../../server/src/routes/authorization.js:101:13)
+
+  console.log
+    
+    [XYON DEV] Password reset OTP for test_auth_1777763526250@xyon-test.local: 108807
+
+      at log (../../server/src/routes/authorization.js:26:13)
+
+  console.log
+    LOGIN ATTEMPT: test_auth_1777763526250@xyon-test.local
+
+      at log (../../server/src/routes/authorization.js:101:13)
+
+  console.log
+    ROWS FOUND: 0
+
+      at log (../../server/src/routes/authorization.js:111:13)
+
+  console.log
+    ◇ injected env (6) from ../../server/src/.env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+  console.log
+    ◇ injected env (6) from ../../server/src/.env // tip: ◈ secrets for agents [www.dotenvx.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+

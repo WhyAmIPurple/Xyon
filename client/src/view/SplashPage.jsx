@@ -83,7 +83,7 @@ export default function SplashPage({ onShowLogin, onShowSignup }) {
               borderRadius: "var(--r-md)",
               border: "none",
               background: "var(--pink)",
-              color: "var(--text)",
+              color: "#3d2b30",
               fontSize: "14px",
               fontWeight: 700,
               cursor: "pointer",
@@ -111,6 +111,7 @@ export default function SplashPage({ onShowLogin, onShowSignup }) {
           padding: "6px 16px",
           borderRadius: "999px",
           background: "var(--pink)",
+          color: "#3d2b30",
           fontSize: "12px",
           fontWeight: 700,
           letterSpacing: "0.05em",
@@ -127,7 +128,7 @@ export default function SplashPage({ onShowLogin, onShowSignup }) {
           maxWidth: "720px",
           margin: 0,
         }}>
-          Your academic life,<br />organized in one place.
+          Your academic life,<br />organized all in one place.
         </h1>
 
         <p style={{
@@ -138,7 +139,7 @@ export default function SplashPage({ onShowLogin, onShowSignup }) {
           margin: 0,
         }}>
           Xyon brings your classes, assignments, deadlines, and personal events
-          together into a single, beautiful workspace — so you can focus on what matters.
+          together into a single, beautiful workspace so you can focus on what matters.
         </p>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "center", marginTop: "8px" }}>
@@ -149,7 +150,7 @@ export default function SplashPage({ onShowLogin, onShowSignup }) {
               borderRadius: "var(--r-md)",
               border: "none",
               background: "var(--pink)",
-              color: "var(--text)",
+              color: "#3d2b30",
               fontSize: "15px",
               fontWeight: 700,
               cursor: "pointer",
@@ -240,7 +241,7 @@ export default function SplashPage({ onShowLogin, onShowSignup }) {
             borderRadius: "var(--r-md)",
             border: "none",
             background: "var(--pink)",
-            color: "var(--text)",
+            color: "#3d2b30",
             fontSize: "14px",
             fontWeight: 700,
             cursor: "pointer",
